@@ -1,0 +1,173 @@
+{
+  "type": "FeatureCollection",
+  "name": "GridMate_Lonavala_Assets",
+  "crs": {
+    "type": "name",
+    "properties": {
+      "name": "urn:ogc:def:crs:OGC:1.3:CRS84"
+    }
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "solar_01",
+        "type": "solar",
+        "name": "Solar Site 01 - Tungarli Plateau (Simulated)",
+        "capacity_kw": 300.0,
+        "status": "active",
+        "is_synthetic": true,
+        "data_source": "synthetic_demo",
+        "note": "Simulated prototype asset. Coordinates are illustrative, not verified real infrastructure."
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          73.415,
+          18.766
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "solar_02",
+        "type": "solar",
+        "name": "Solar Site 02 - Valvan Open Ground (Simulated)",
+        "capacity_kw": 300.0,
+        "status": "active",
+        "is_synthetic": true,
+        "data_source": "synthetic_demo",
+        "note": "Simulated prototype asset. Coordinates are illustrative, not verified real infrastructure."
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          73.438,
+          18.748
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "wind_01",
+        "type": "wind",
+        "name": "Wind Turbine Site 01 - Khandala Ridge (Simulated)",
+        "capacity_kw": 200.0,
+        "status": "active",
+        "is_synthetic": true,
+        "data_source": "synthetic_demo",
+        "note": "Simulated prototype asset. Coordinates are illustrative, not verified real infrastructure."
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          73.365,
+          18.765
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "wind_02",
+        "type": "wind",
+        "name": "Wind Turbine Site 02 - Duke's Nose Ridge (Simulated)",
+        "capacity_kw": 150.0,
+        "status": "active",
+        "is_synthetic": true,
+        "data_source": "synthetic_demo",
+        "note": "Simulated prototype asset. Coordinates are illustrative, not verified real infrastructure."
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          73.372,
+          18.728
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "hydro_01",
+        "type": "hydro",
+        "name": "Hydro Plant 01 - Valvan Shore Powerhouse (Simulated)",
+        "capacity_kw": 400.0,
+        "status": "active",
+        "is_synthetic": true,
+        "data_source": "synthetic_demo",
+        "note": "Simulated prototype asset. Coordinates are illustrative, not verified real infrastructure."
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          73.42188,
+          18.75835
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "battery_01",
+        "type": "battery",
+        "name": "Battery Storage BESS 01 - Substation Park (Simulated)",
+        "capacity_kw": 250.0,
+        "status": "active",
+        "is_synthetic": true,
+        "data_source": "synthetic_demo",
+        "note": "Simulated prototype asset. Coordinates are illustrative, not verified real infrastructure.",
+        "capacity_kwh": 1000.0
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          73.424,
+          18.747
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "grid_01",
+        "type": "grid",
+        "name": "Grid Intertie 01 - Lonavala 110kV Substation (Simulated)",
+        "capacity_kw": 1500.0,
+        "status": "active",
+        "is_synthetic": true,
+        "data_source": "synthetic_demo",
+        "note": "Simulated prototype asset. Coordinates are illustrative, not verified real infrastructure."
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          73.425,
+          18.746
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "demand_hub_01",
+        "type": "demand",
+        "name": "Lonavala Central Demand Hub (Simulated)",
+        "capacity_kw": 1200.0,
+        "status": "active",
+        "is_synthetic": true,
+        "data_source": "synthetic_demo",
+        "note": "Simulated prototype asset. Coordinates are illustrative, not verified real infrastructure."
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          73.407,
+          18.752
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,85 @@
+{
+  "project": "GridMate Lonavala Digital Twin",
+  "location": "Lonavala, Maharashtra, India",
+  "center": [73.4070, 18.7520],
+  "zoom": 12.6,
+  "pitch": 0,
+  "bearing": 0,
+  "bounds": [
+    [73.3300, 18.6800],
+    [73.4800, 18.8100]
+  ],
+  "basemap": {
+    "name": "CartoDB Positron (No Key Required)",
+    "style": "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
+    "fallback_raster_tiles": [
+      "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+    ],
+    "attribution": "© <a href=\"https://www.openstreetmap.org/copyright\" target=\"_blank\">OpenStreetMap</a> contributors, © CARTO"
+  },
+  "asset_colors": {
+    "solar": "#f59e0b",
+    "wind": "#06b6d4",
+    "hydro": "#3b82f6",
+    "battery": "#10b981",
+    "grid": "#ef4444",
+    "demand": "#8b5cf6"
+  },
+  "status_colors": {
+    "active": "#10b981",
+    "discharging": "#10b981",
+    "charging": "#0284c7",
+    "idle": "#94a3b8",
+    "not_supplying": "#64748b"
+  },
+  "scenarios": [
+    { "id": "normal", "label": "Normal Day", "file": "../data/scenarios/normal.json" },
+    { "id": "cloudy", "label": "Cloudy Day", "file": "../data/scenarios/cloudy.json" },
+    { "id": "heavy_monsoon", "label": "Heavy Monsoon", "file": "../data/scenarios/heavy_monsoon.json" },
+    { "id": "high_wind", "label": "High Wind", "file": "../data/scenarios/high_wind.json" },
+    { "id": "peak_demand", "label": "Peak Demand", "file": "../data/scenarios/peak_demand.json" }
+  ],
+  "layers": [
+    {
+      "id": "water-features",
+      "name": "Water Bodies & Reservoirs",
+      "source_file": "../data/water_features.geojson",
+      "type": "fill",
+      "order": 1,
+      "default_visible": true
+    },
+    {
+      "id": "roads",
+      "name": "Major Road Network",
+      "source_file": "../data/roads.geojson",
+      "type": "line",
+      "order": 2,
+      "default_visible": true
+    },
+    {
+      "id": "demand-zones",
+      "name": "Demand Zones",
+      "source_file": "../data/demand_zones.geojson",
+      "type": "fill",
+      "order": 3,
+      "default_visible": true
+    },
+    {
+      "id": "energy-flow",
+      "name": "Dynamic Energy Flow Lines",
+      "source_file": "../data/energy_flow_template.geojson",
+      "type": "line",
+      "order": 4,
+      "default_visible": true
+    },
+    {
+      "id": "assets",
+      "name": "Energy Assets & Infrastructure",
+      "source_file": "../data/assets.geojson",
+      "type": "circle",
+      "order": 5,
+      "default_visible": true
+    }
+  ]
+}
+

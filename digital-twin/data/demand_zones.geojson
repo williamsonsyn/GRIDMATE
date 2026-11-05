@@ -1,0 +1,162 @@
+{
+  "type": "FeatureCollection",
+  "name": "GridMate_Lonavala_Demand_Zones",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "zone_01",
+        "name": "Lonavala Town Center & Residential",
+        "zone_type": "residential",
+        "base_load_kw": 400.0,
+        "is_synthetic": true,
+        "data_source": "synthetic_demo",
+        "note": "Simulated prototype asset. Coordinates are illustrative, not verified real infrastructure."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              73.396,
+              18.742
+            ],
+            [
+              73.42,
+              18.742
+            ],
+            [
+              73.42,
+              18.76
+            ],
+            [
+              73.396,
+              18.76
+            ],
+            [
+              73.396,
+              18.742
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "zone_02",
+        "name": "Khandala Tourism & Hotel Corridor",
+        "zone_type": "commercial",
+        "base_load_kw": 250.0,
+        "is_synthetic": true,
+        "data_source": "synthetic_demo",
+        "note": "Simulated prototype asset. Coordinates are illustrative, not verified real infrastructure."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              73.348,
+              18.75
+            ],
+            [
+              73.376,
+              18.75
+            ],
+            [
+              73.376,
+              18.78
+            ],
+            [
+              73.348,
+              18.78
+            ],
+            [
+              73.348,
+              18.75
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "zone_03",
+        "name": "Valvan Industrial & Workshop Pocket",
+        "zone_type": "industrial",
+        "base_load_kw": 180.0,
+        "is_synthetic": true,
+        "data_source": "synthetic_demo",
+        "note": "Simulated prototype asset. Coordinates are illustrative, not verified real infrastructure."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              73.428,
+              18.738
+            ],
+            [
+              73.456,
+              18.738
+            ],
+            [
+              73.456,
+              18.755
+            ],
+            [
+              73.428,
+              18.755
+            ],
+            [
+              73.428,
+              18.738
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "zone_04",
+        "name": "Bhushi Tourism & Recreation Sector",
+        "zone_type": "commercial",
+        "base_load_kw": 70.0,
+        "is_synthetic": true,
+        "data_source": "synthetic_demo",
+        "note": "Simulated prototype asset. Coordinates are illustrative, not verified real infrastructure."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              73.38,
+              18.712
+            ],
+            [
+              73.402,
+              18.712
+            ],
+            [
+              73.402,
+              18.732
+            ],
+            [
+              73.38,
+              18.732
+            ],
+            [
+              73.38,
+              18.712
+            ]
+          ]
+        ]
+      }
+    }
+  ]
+}

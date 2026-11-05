@@ -1,0 +1,22 @@
+{
+  "fill_layer": {
+    "id": "water-fill",
+    "type": "fill",
+    "source": "water-source",
+    "paint": {
+      "fill-color": "#38bdf8",
+      "fill-opacity": 0.55
+    }
+  },
+  "line_layer": {
+    "id": "water-line",
+    "type": "line",
+    "source": "water-source",
+    "paint": {
+      "line-color": "#0284c7",
+      "line-width": 1.5,
+      "line-opacity": 0.8
+    }
+  }
+}
+

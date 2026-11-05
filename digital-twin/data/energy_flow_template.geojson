@@ -1,0 +1,195 @@
+{
+  "type": "FeatureCollection",
+  "name": "GridMate_Energy_Flow_Template",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "flow_solar_01_to_demand",
+        "source_id": "solar_01",
+        "source_type": "solar",
+        "source_name": "Solar Site 01 - Tungarli Plateau (Simulated)",
+        "target_id": "demand_hub_01",
+        "target_name": "Lonavala Central Demand Hub (Simulated)",
+        "default_flow_kw": 0.0,
+        "is_synthetic": true,
+        "note": "Simulated prototype asset. Coordinates are illustrative, not verified real infrastructure."
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            73.415,
+            18.766
+          ],
+          [
+            73.407,
+            18.752
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "flow_solar_02_to_demand",
+        "source_id": "solar_02",
+        "source_type": "solar",
+        "source_name": "Solar Site 02 - Valvan Open Ground (Simulated)",
+        "target_id": "demand_hub_01",
+        "target_name": "Lonavala Central Demand Hub (Simulated)",
+        "default_flow_kw": 0.0,
+        "is_synthetic": true,
+        "note": "Simulated prototype asset. Coordinates are illustrative, not verified real infrastructure."
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            73.438,
+            18.748
+          ],
+          [
+            73.407,
+            18.752
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "flow_wind_01_to_demand",
+        "source_id": "wind_01",
+        "source_type": "wind",
+        "source_name": "Wind Turbine Site 01 - Khandala Ridge (Simulated)",
+        "target_id": "demand_hub_01",
+        "target_name": "Lonavala Central Demand Hub (Simulated)",
+        "default_flow_kw": 0.0,
+        "is_synthetic": true,
+        "note": "Simulated prototype asset. Coordinates are illustrative, not verified real infrastructure."
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            73.365,
+            18.765
+          ],
+          [
+            73.407,
+            18.752
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "flow_wind_02_to_demand",
+        "source_id": "wind_02",
+        "source_type": "wind",
+        "source_name": "Wind Turbine Site 02 - Duke's Nose Ridge (Simulated)",
+        "target_id": "demand_hub_01",
+        "target_name": "Lonavala Central Demand Hub (Simulated)",
+        "default_flow_kw": 0.0,
+        "is_synthetic": true,
+        "note": "Simulated prototype asset. Coordinates are illustrative, not verified real infrastructure."
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            73.372,
+            18.728
+          ],
+          [
+            73.407,
+            18.752
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "flow_hydro_01_to_demand",
+        "source_id": "hydro_01",
+        "source_type": "hydro",
+        "source_name": "Hydro Plant 01 - Valvan Shore Powerhouse (Simulated)",
+        "target_id": "demand_hub_01",
+        "target_name": "Lonavala Central Demand Hub (Simulated)",
+        "default_flow_kw": 0.0,
+        "is_synthetic": true,
+        "note": "Simulated prototype asset. Coordinates are illustrative, not verified real infrastructure."
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            73.42188,
+            18.75835
+          ],
+          [
+            73.407,
+            18.752
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "flow_battery_01_to_demand",
+        "source_id": "battery_01",
+        "source_type": "battery",
+        "source_name": "Battery Storage BESS 01 - Substation Park (Simulated)",
+        "target_id": "demand_hub_01",
+        "target_name": "Lonavala Central Demand Hub (Simulated)",
+        "default_flow_kw": 0.0,
+        "is_synthetic": true,
+        "note": "Simulated prototype asset. Coordinates are illustrative, not verified real infrastructure."
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            73.424,
+            18.747
+          ],
+          [
+            73.407,
+            18.752
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "flow_grid_01_to_demand",
+        "source_id": "grid_01",
+        "source_type": "grid",
+        "source_name": "Grid Intertie 01 - Lonavala 110kV Substation (Simulated)",
+        "target_id": "demand_hub_01",
+        "target_name": "Lonavala Central Demand Hub (Simulated)",
+        "default_flow_kw": 0.0,
+        "is_synthetic": true,
+        "note": "Simulated prototype asset. Coordinates are illustrative, not verified real infrastructure."
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            73.425,
+            18.746
+          ],
+          [
+            73.407,
+            18.752
+          ]
+        ]
+      }
+    }
+  ]
+}
