@@ -1,0 +1,77 @@
+{
+  "metadata": {
+    "project": "GridMate",
+    "module": "forecasting",
+    "location": "Lonavala, Maharashtra",
+    "data_type": "Synthetic Demo Data (Illustrative prototype results - Not measured utility data)",
+    "is_synthetic": true,
+    "generated_at": "2026-11-05T17:28:23.759918+00:00",
+    "train_test_split": "80:20 Chronological",
+    "train_samples": 6988,
+    "test_samples": 1748,
+    "train_horizon": "2025-10-02 00:00:00 to 2026-07-20 03:00:00",
+    "test_horizon": "2026-07-20 04:00:00 to 2026-09-30 23:00:00"
+  },
+  "targets": {
+    "solar_kw": {
+      "mae": 1.4888,
+      "rmse": 2.8671,
+      "r2": 0.9984,
+      "test_samples": 1748,
+      "features": [
+        "solar_irradiance",
+        "solar_irradiance_lag_1",
+        "cloud_cover",
+        "temperature",
+        "humidity",
+        "hour",
+        "month",
+        "day_of_year"
+      ]
+    },
+    "wind_kw": {
+      "mae": 3.3141,
+      "rmse": 5.9659,
+      "r2": 0.9896,
+      "test_samples": 1748,
+      "features": [
+        "wind_speed",
+        "wind_speed_lag_1",
+        "wind_direction",
+        "pressure",
+        "temperature",
+        "hour",
+        "month"
+      ]
+    },
+    "hydro_kw": {
+      "mae": 2.5249,
+      "rmse": 3.1911,
+      "r2": 0.9527,
+      "test_samples": 1748,
+      "features": [
+        "water_flow",
+        "water_flow_lag_1",
+        "rainfall",
+        "month",
+        "day_of_year"
+      ]
+    },
+    "load_kw": {
+      "mae": 12.679,
+      "rmse": 15.8814,
+      "r2": 0.9821,
+      "test_samples": 1748,
+      "features": [
+        "historical_load_lag_1",
+        "historical_load_lag_24",
+        "temperature",
+        "humidity",
+        "hour",
+        "day_of_week",
+        "month",
+        "is_weekend"
+      ]
+    }
+  }
+}
