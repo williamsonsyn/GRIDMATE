@@ -1,21 +1,41 @@
 {
   "project": "GridMate Lonavala Digital Twin",
   "location": "Lonavala, Maharashtra, India",
-  "center": [73.4070, 18.7520],
-  "zoom": 12.6,
+  "center": [73.4350, 18.7600],
+  "zoom": 11.2,
   "pitch": 0,
   "bearing": 0,
+  "context_bbox": [73.25, 18.62, 73.62, 18.90],
+  "asset_bbox": [73.33, 18.68, 73.48, 18.81],
   "bounds": [
-    [73.3300, 18.6800],
-    [73.4800, 18.8100]
+    [73.2500, 18.6200],
+    [73.6200, 18.9000]
   ],
-  "basemap": {
-    "name": "CartoDB Positron (No Key Required)",
-    "style": "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
-    "fallback_raster_tiles": [
-      "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-    ],
-    "attribution": "© <a href=\"https://www.openstreetmap.org/copyright\" target=\"_blank\">OpenStreetMap</a> contributors, © CARTO"
+  "basemaps": {
+    "streets": {
+      "name": "Streets",
+      "tiles": [
+        "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png",
+        "https://b.tile.openstreetmap.org/{z}/{x}/{y}.png"
+      ],
+      "tileSize": 256,
+      "maxzoom": 19,
+      "attribution": "© <a href=\"https://www.openstreetmap.org/copyright\" target=\"_blank\">OpenStreetMap</a> contributors"
+    },
+    "satellite": {
+      "name": "Satellite",
+      "tiles": [
+        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+      ],
+      "tileSize": 256,
+      "maxzoom": 19,
+      "attribution": "Imagery © Esri, Maxar, Earthstar Geographics | © OpenStreetMap contributors"
+    },
+    "plain_dark": {
+      "name": "Plain dark",
+      "tiles": [],
+      "attribution": "© OpenStreetMap contributors"
+    }
   },
   "asset_colors": {
     "solar": "#f59e0b",
@@ -82,4 +102,3 @@
     }
   ]
 }
-

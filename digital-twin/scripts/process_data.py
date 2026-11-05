@@ -1,6 +1,7 @@
 """
 process_data.py
-Cleans, simplifies, reprojects, and filters raw OpenStreetMap GIS data for Lonavala:
+Cleans, simplifies, reprojects, and filters raw OpenStreetMap GIS data for Lonavala Digital Twin:
+- Clips water and roads to context_bbox [73.25, 18.62, 73.62, 18.90]
 - Produces digital-twin/data/water_features.geojson
 - Produces digital-twin/data/roads.geojson
 - Produces digital-twin/data/raw/metadata.json
@@ -26,14 +27,17 @@ RAW_DIR = BASE_DIR / "data" / "raw"
 DATA_DIR = BASE_DIR / "data"
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 
-LONAVALA_BBOX = [73.33, 18.68, 73.48, 18.81]  # [min_lon, min_lat, max_lon, max_lat]
-BBOX_POLYGON = box(*LONAVALA_BBOX)
+# Context bounding box for regional GIS layers (water, roads)
+CONTEXT_BBOX = [73.25, 18.62, 73.62, 18.90]  # [min_lon, min_lat, max_lon, max_lat]
+# Asset bounding box for synthetic assets and demand zones
+ASSET_BBOX = [73.33, 18.68, 73.48, 18.81]
 
 
 def process_water():
-    """Processes water features: keep polygons (drop tiny ponds < 2000 m2, keep named waterbodies)
+    """Processes water features: keep polygons (drop tiny ponds < 2000 m2, keep named waterbodies
 
-    and major rivers/streams as lines, clip to bbox, reproject to EPSG:4326, fix invalid geometries,
+    including Valvan, Bhushi, Tungarli, Khandala, Pavana, Tata, Shirota) and major rivers/canals/streams
+    as lines (>= 500m or named), clip to context_bbox, reproject to EPSG:4326, fix invalid geometries,
     and simplify lightly (~0.0001 deg).
     """
     raw_path = RAW_DIR / "raw_water.geojson"
@@ -67,8 +71,8 @@ def process_water():
 
     combined = gpd.pd.concat([polys_kept, lines_kept], ignore_index=True)
 
-    # Clip cleanly to bounding box
-    clipped = gpd.clip(combined, LONAVALA_BBOX)
+    # Clip to context bounding box
+    clipped = gpd.clip(combined, CONTEXT_BBOX)
     clipped = clipped[~clipped.geometry.is_empty & clipped.geometry.notna()].copy()
     clipped["geometry"] = clipped["geometry"].apply(lambda g: make_valid(g) if not g.is_valid else g)
     clipped["geometry"] = clipped["geometry"].simplify(tolerance=0.0001, preserve_topology=True)
@@ -85,7 +89,7 @@ def process_water():
             name = " ".join(name.split())
         else:
             wtype = row.get("water") or row.get("waterway") or row.get("natural") or "water"
-            name = f"Lonavala {str(wtype).capitalize()} {idx+1}"
+            name = f"Water Body {idx+1}"
 
         water_type = (
             row.get("water")
@@ -115,7 +119,7 @@ def process_water():
 def process_roads():
     """Processes road features: keep motorway, trunk, primary, and secondary (and links),
 
-    clip to bbox, reproject to EPSG:4326, fix invalid geometries, simplify lightly (~0.0001 deg).
+    clip to context_bbox, reproject to EPSG:4326, fix invalid geometries, simplify lightly (~0.0001 deg).
     """
     raw_path = RAW_DIR / "raw_roads.geojson"
     if not raw_path.exists():
@@ -134,8 +138,8 @@ def process_roads():
     allowed_highways = ["motorway", "trunk", "primary", "secondary", "motorway_link", "trunk_link"]
     roads_filtered = gdf[gdf["highway"].isin(allowed_highways)].copy()
 
-    # Clip to bounding box
-    clipped = gpd.clip(roads_filtered, LONAVALA_BBOX)
+    # Clip to context bounding box
+    clipped = gpd.clip(roads_filtered, CONTEXT_BBOX)
     clipped = clipped[~clipped.geometry.is_empty & clipped.geometry.notna()].copy()
     clipped["geometry"] = clipped["geometry"].apply(lambda g: make_valid(g) if not g.is_valid else g)
     clipped["geometry"] = clipped["geometry"].simplify(tolerance=0.0001, preserve_topology=True)
@@ -149,7 +153,7 @@ def process_roads():
             if "bushi" in name.lower() and "bhushi" not in name.lower():
                 name = name.replace("Bushi", "Bhushi").replace("bushi", "bhushi")
         else:
-            name = f"Lonavala {highway.capitalize()} Segment {idx+1}"
+            name = f"Road Segment {idx+1}"
 
         road_id = f"road_{idx+1:03d}"
         records.append({
@@ -171,7 +175,7 @@ def process_roads():
 
 
 def write_metadata(water_gdf, roads_gdf):
-    """Writes data/raw/metadata.json documenting sources, counts, and bbox."""
+    """Writes data/raw/metadata.json documenting sources, counts, and bboxes."""
     raw_water_path = RAW_DIR / "raw_water.geojson"
     raw_roads_path = RAW_DIR / "raw_roads.geojson"
     raw_landuse_path = RAW_DIR / "raw_landuse.geojson"
@@ -181,16 +185,22 @@ def write_metadata(water_gdf, roads_gdf):
     raw_landuse_count = len(gpd.read_file(raw_landuse_path)) if raw_landuse_path.exists() else 0
 
     metadata = {
-        "testbed": "Lonavala & Khandala, Maharashtra, India",
+        "testbed": "Lonavala & Khandala Regional Context, Maharashtra, India",
         "data_source": "manual overpass-turbo export, OSM ODbL",
         "attribution": "© OpenStreetMap contributors (ODbL 1.0)",
         "date_exported": date.today().isoformat(),
         "crs": "EPSG:4326",
-        "bbox": {
-            "min_lon": LONAVALA_BBOX[0],
-            "min_lat": LONAVALA_BBOX[1],
-            "max_lon": LONAVALA_BBOX[2],
-            "max_lat": LONAVALA_BBOX[3]
+        "context_bbox": {
+            "min_lon": CONTEXT_BBOX[0],
+            "min_lat": CONTEXT_BBOX[1],
+            "max_lon": CONTEXT_BBOX[2],
+            "max_lat": CONTEXT_BBOX[3]
+        },
+        "asset_bbox": {
+            "min_lon": ASSET_BBOX[0],
+            "min_lat": ASSET_BBOX[1],
+            "max_lon": ASSET_BBOX[2],
+            "max_lat": ASSET_BBOX[3]
         },
         "raw_counts": {
             "raw_water": raw_water_count,
@@ -210,11 +220,11 @@ def write_metadata(water_gdf, roads_gdf):
 
 
 def main():
-    logger.info("=== STEP 2: Process & Clean Real OSM GIS Data ===")
+    logger.info("=== Process & Clean Real OSM GIS Data for Context BBox ===")
     water_gdf = process_water()
     roads_gdf = process_roads()
     write_metadata(water_gdf, roads_gdf)
-    logger.info("Step 2 completed successfully.")
+    logger.info("process_data completed successfully.")
 
 
 if __name__ == "__main__":

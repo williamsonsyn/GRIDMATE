@@ -3,11 +3,13 @@ test_digital_twin.py
 Pytest test suite for Member 3 "Lonavala Digital Twin & GIS" module.
 
 Verifications:
-1. GeoJSON validity, CRS EPSG:4326, [lon, lat] coordinate order inside Lonavala bbox.
+1. GeoJSON validity, CRS EPSG:4326, [lon, lat] coordinate order:
+   - Context layers (water, roads) inside context_bbox [73.25, 18.62, 73.62, 18.90]
+   - Asset & demand layers inside asset_bbox [73.33, 18.68, 73.48, 18.81]
 2. Real OSM GIS verification: metadata source is manual OSM export, no fallback/synthetic flags,
    water has polygons with enough vertices.
 3. Asset spatial constraints: no asset inside water polygons, hydro asset on real shoreline within
-   100 m of water polygon edge, wind on higher ground inside Lonavala-Khandala area, all in bbox.
+   100 m of water polygon edge, wind on higher ground inside Lonavala-Khandala area, all assets in asset_bbox.
 4. Demand zones & flow templates validity (base load totals 900 kW, correct spelling 'Bhushi').
 5. Dispatch contract compliance and physical energy balance across all 5 scenario files.
 6. Python map_utils and JS applyDispatch.js parity across all 5 scenarios.
@@ -28,10 +30,9 @@ DATA_DIR = BASE_DIR / "data"
 RAW_DIR = DATA_DIR / "raw"
 SCENARIO_DIR = DATA_DIR / "scenarios"
 
-# Lonavala bounding box: longitude 73.33 to 73.48, latitude 18.68 to 18.81
-LON_MIN, LON_MAX = 73.30, 73.50
-LAT_MIN, LAT_MAX = 18.65, 18.85
-STRICT_BBOX = [73.33, 18.68, 73.48, 18.81]
+# Two bounding boxes as defined in the contract:
+CONTEXT_BBOX = [73.25, 18.62, 73.62, 18.90]  # [min_lon, min_lat, max_lon, max_lat]
+ASSET_BBOX = [73.33, 18.68, 73.48, 18.81]    # Lonavala-Khandala core
 
 REQUIRED_ASSET_TYPES = {"solar", "wind", "hydro", "battery", "grid", "demand"}
 REQUIRED_SCENARIOS = {"normal", "cloudy", "heavy_monsoon", "high_wind", "peak_demand"}
@@ -58,17 +59,17 @@ def extract_all_coordinates(geom_dict):
 
 
 # ==========================================
-# 1. GeoJSON Validity & Coordinate Order
+# 1. GeoJSON Validity & Bounding Boxes
 # ==========================================
 
-@pytest.mark.parametrize("filename", [
-    "assets.geojson",
-    "demand_zones.geojson",
-    "water_features.geojson",
-    "roads.geojson",
-    "energy_flow_template.geojson"
+@pytest.mark.parametrize("filename,bbox_name,bbox", [
+    ("water_features.geojson", "context_bbox", CONTEXT_BBOX),
+    ("roads.geojson", "context_bbox", CONTEXT_BBOX),
+    ("assets.geojson", "asset_bbox", ASSET_BBOX),
+    ("demand_zones.geojson", "asset_bbox", ASSET_BBOX),
+    ("energy_flow_template.geojson", "asset_bbox", ASSET_BBOX)
 ])
-def test_geojson_validity_and_bounds(filename):
+def test_geojson_validity_and_bounds(filename, bbox_name, bbox):
     filepath = DATA_DIR / filename
     assert filepath.exists(), f"Missing required file: {filename}"
 
@@ -77,6 +78,11 @@ def test_geojson_validity_and_bounds(filename):
 
     assert fc.get("type") == "FeatureCollection", f"{filename} is not a FeatureCollection"
     assert "features" in fc and len(fc["features"]) > 0, f"{filename} has no features"
+
+    # Allow tiny float precision margin (1e-4 deg ≈ 10 meters)
+    margin = 0.0002
+    min_lon, min_lat = bbox[0] - margin, bbox[1] - margin
+    max_lon, max_lat = bbox[2] + margin, bbox[3] + margin
 
     for idx, feature in enumerate(fc["features"]):
         fid = feature.get("properties", {}).get("id", f"idx_{idx}")
@@ -92,18 +98,18 @@ def test_geojson_validity_and_bounds(filename):
 
         for pt in coords:
             lon, lat = pt[0], pt[1]
-            assert LON_MIN <= lon <= LON_MAX, (
-                f"Longitude {lon} out of bounds [{LON_MIN}, {LON_MAX}] in feature {fid} ({filename}). "
+            assert min_lon <= lon <= max_lon, (
+                f"Longitude {lon} out of bounds [{bbox[0]}, {bbox[2]}] ({bbox_name}) in feature {fid} ({filename}). "
                 "Did coordinates get swapped (lat/lon instead of lon/lat)?"
             )
-            assert LAT_MIN <= lat <= LAT_MAX, (
-                f"Latitude {lat} out of bounds [{LAT_MIN}, {LAT_MAX}] in feature {fid} ({filename}). "
+            assert min_lat <= lat <= max_lat, (
+                f"Latitude {lat} out of bounds [{bbox[1]}, {bbox[3]}] ({bbox_name}) in feature {fid} ({filename}). "
                 "Did coordinates get swapped?"
             )
 
 
 # ==========================================
-# 2. Real OSM GIS Layer Verification
+# 2. Real OSM GIS Layer & Lakes Verification
 # ==========================================
 
 def test_metadata_source_is_real_osm():
@@ -117,6 +123,8 @@ def test_metadata_source_is_real_osm():
         f"Unexpected metadata source: {source_desc}. Expected manual OSM export."
     )
     assert meta.get("crs") == "EPSG:4326"
+    assert "context_bbox" in meta
+    assert "asset_bbox" in meta
 
 
 def test_water_and_roads_are_real_osm():
@@ -129,6 +137,7 @@ def test_water_and_roads_are_real_osm():
         rfc = json.load(f)
 
     polygon_features = []
+    lake_names = set()
     for f in wfc["features"]:
         fid = f.get("properties", {}).get("id", "unknown_water")
         p = f["properties"]
@@ -138,8 +147,16 @@ def test_water_and_roads_are_real_osm():
         s = shape(f["geometry"])
         if s.geom_type in ["Polygon", "MultiPolygon"]:
             polygon_features.append((fid, s))
+            if p.get("name"):
+                lake_names.add(p["name"].lower())
 
-    assert len(polygon_features) >= 10, f"Expected at least 10 real water polygons, got {len(polygon_features)}"
+    assert len(polygon_features) >= 15, f"Expected at least 15 real water polygons, got {len(polygon_features)}"
+
+    # Check key lakes are present
+    required_lakes = ["valvan", "bhushi", "tungarli", "khandala", "pavana", "tata"]
+    for req in required_lakes:
+        found = any(req in n for n in lake_names)
+        assert found, f"Required named lake '{req}' missing from water_features.geojson"
 
     # Check vertex density on polygons: real OSM lake polygons have many vertices
     for fid, poly in polygon_features:
@@ -167,12 +184,10 @@ def test_asset_spatial_constraints():
     with open(assets_path, "r", encoding="utf-8") as f:
         afc = json.load(f)
 
-    # Load water polygons into shapely objects
     gdf_water = gpd.read_file(water_path)
     water_polys = gdf_water[gdf_water.geometry.geom_type.isin(["Polygon", "MultiPolygon"])].copy()
     assert len(water_polys) > 0, "No water polygons found for spatial validation"
 
-    # Union in projected CRS (UTM 43N) to measure accurate distances in meters
     water_polys_utm = water_polys.to_crs("EPSG:32643")
     water_union_utm = water_polys_utm.geometry.union_all()
 
@@ -185,11 +200,10 @@ def test_asset_spatial_constraints():
         aid = props.get("id", "unknown_asset")
         coords = feature["geometry"]["coordinates"]
         lon, lat = coords[0], coords[1]
-        pt_geom = Point(lon, lat)
 
-        # 1. Coordinate inside bounding box
-        assert STRICT_BBOX[0] <= lon <= STRICT_BBOX[2], f"Asset {aid} longitude {lon} out of strict bbox"
-        assert STRICT_BBOX[1] <= lat <= STRICT_BBOX[3], f"Asset {aid} latitude {lat} out of strict bbox"
+        # 1. Coordinate strictly inside asset_bbox
+        assert ASSET_BBOX[0] <= lon <= ASSET_BBOX[2], f"Asset {aid} longitude {lon} out of asset_bbox"
+        assert ASSET_BBOX[1] <= lat <= ASSET_BBOX[3], f"Asset {aid} latitude {lat} out of asset_bbox"
 
         # Transform to meters
         xm, ym = transformer_to_utm.transform(lon, lat)
@@ -209,7 +223,6 @@ def test_asset_spatial_constraints():
 
         # 4. Wind assets checks: high ground inside Lonavala-Khandala
         if props.get("type") == "wind":
-            # Must be in elevated ridge longitude band (73.34 to 73.39) and not in valley/Khopoli
             assert 73.34 <= lon <= 73.39, (
                 f"Wind asset {aid} ({props.get('name')}) at lon {lon} not on Lonavala-Khandala ridge"
             )
@@ -272,7 +285,6 @@ def test_demand_zones_properties():
 
     for f in fc["features"]:
         props = f["properties"]
-        zid = props["id"]
         assert "name" in props
         assert "zone_type" in props
         assert "base_load_kw" in props and props["base_load_kw"] > 0
@@ -363,7 +375,6 @@ def test_python_js_parity_per_scenario(scenario_id):
     py_row = load_dispatch(scen_file)
     py_applied = apply_dispatch(assets_file, py_row, scenario_id=scenario_id)
 
-    # Execute Node script to run applyDispatch.js
     js_script = f"""
     const fs = require('fs');
     const GridMateDispatch = require('./map/applyDispatch.js');
