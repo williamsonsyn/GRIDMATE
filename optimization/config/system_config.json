@@ -1,0 +1,17 @@
+{
+  "battery": {
+    "energy_capacity_kwh": 500,
+    "maximum_charge_kw": 100,
+    "maximum_discharge_kw": 100,
+    "initial_state_of_charge": 200,
+    "minimum_state_of_charge": 50,
+    "maximum_state_of_charge": 500,
+    "charge_efficiency": 0.95,
+    "discharge_efficiency": 0.95
+  },
+  "grid": {
+    "grid_capacity_kw": 1000,
+    "grid_cost_per_kwh": 8,
+    "grid_emission_factor": 0.7
+  }
+}
