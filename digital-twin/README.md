@@ -138,7 +138,7 @@ Power transfer vectors dynamically adapt in real time according to generation, d
 - **Unified Updates**: Advancing the slider updates all twin layers simultaneously:
   - Asset forecast output kW, utilization percentage, halo rings, and status badges.
   - Energy flow vector directions, line thicknesses, and animated particle speeds.
-  - Sidebar energy dispatch metrics (Renewable Penetration %, Grid Dependency %, Battery Mode, Battery SOC, Gen vs Load balance).
+  - Sidebar energy dispatch metrics (Renewable Penetration %, Grid Dependency %, Battery Mode, Battery SOC, Supply vs Load Balance).
   - Demand zone current `load_kw` and 4-tier color shading.
   - Collapsible side-panel asset directory and active map popup readouts.
 - **Single-Point Scenarios**: Selecting a 1-hour snapshot scenario automatically disables the slider and play button while displaying that snapshot's exact timestamp.
@@ -173,6 +173,7 @@ Member 4 can import or fetch the following verified deliverables from `digital-t
 | `map/map_config.json` | Center, zoom, bboxes, basemaps, layer orders | Map configuration & styling parameters |
 | `map/applyDispatch.js` | Pure UMD/CJS dispatch calculation engine | Headless proportional power distribution & flow |
 | `map/gridmateMap.js` | Framework-agnostic ES module map controller | Interactive MapLibre GL JS React integration |
+| `map/gridmateMap.d.ts` | TypeScript type declarations | Type safety for React / TypeScript consumers |
 
 > **Disclaimer**: All energy asset coordinates and demand zone geometries are **synthetic and illustrative** prototype data for research and demonstration (`(Simulated)`), not verified real-world electrical infrastructure. Real features are water bodies, roads, power lines, and landuse polygons from OpenStreetMap.
 
@@ -231,8 +232,22 @@ battery_kw > 0 : Discharging (supplying power into the demand hub) -> status = '
 battery_kw < 0 : Charging (absorbing surplus power from generation) -> status = 'charging'
 battery_kw = 0 : Idle (neither charging nor discharging)           -> status = 'idle'
 ```
+> **Renewable penetration treatment**: Battery discharge (`battery_kw > 0`) is counted inside the renewable numerator on the assumption that the BESS stores renewable surplus. Grid import (`grid_kw`) is never counted as renewable.
 
-### 5.5 Canonical Scenario IDs
+### 5.5 Metric Definitions (Section 14, Architecture Contract)
+
+| Metric | Definition | UI label |
+|---|---|---|
+| **Renewable Penetration** | `(solar + wind + hydro + battery_discharge) / load × 100` | Renewable Pen. % |
+| **Grid Dependency** | `grid_kw / load × 100` | Grid Dependency % |
+| **Supply vs Load Balance** | Total supply (solar+wind+hydro+grid+battery_discharge) vs load_kw | Supply vs Load Balance |
+| **Battery Mode** | Derived from battery_kw sign (Discharging / Charging / Idle) | Battery Mode |
+| **Battery SOC** | battery_soc_kwh: 0–1000 kWh (1 MWh nameplate) | Battery SOC |
+| **Est. CO₂ Avoided** | *(Not yet shown in panel; for reference: renewable_kWh × assumed grid emission factor)* | — |
+
+> All metric values are **estimates derived from simulated dispatch data**, not measured data.
+
+### 5.6 Canonical Scenario IDs
 The twin supports the following standard scenario identifiers:
 1. `normal`: Normal Day (100% RE baseline, balanced solar, wind, hydro, battery)
 2. `cloudy`: Cloudy Day (diminished solar PV, battery discharge support, grid intertie import)
@@ -241,7 +256,9 @@ The twin supports the following standard scenario identifiers:
 5. `peak_demand`: Peak Demand (evening 1.25 MW hub load, full asset dispatch)
 
 ### 5.6 React + TypeScript Example
-Below is an example React component showing how to initialize `gridmateMap.js`, push live or simulated dispatch updates, and clean up on unmount:
+Below is an example React component showing how to initialize `gridmateMap.js`, push live or simulated dispatch updates, and clean up on unmount. Import types from `gridmateMap.d.ts`.
+
+> **StrictMode double-mount**: `init()` → `destroy()` → `init()` is safe; `destroy()` cancels all animation frames, removes all MapLibre event listeners, and nulls the global `activeMapController`.
 
 ```tsx
 import React, { useEffect, useRef } from 'react';
@@ -381,6 +398,8 @@ python -m http.server 8000
 
 ## 7. How to Regenerate Data from Raw OSM Exports
 
+> **Note on `data/raw/`**: This directory is listed in `.gitignore` (the files are large OSM exports). On a fresh clone, `data/raw/` will be absent. The processed output files (`data/*.geojson`, `data/scenarios/*.json`) **are committed** and work without raw data. Tests that require raw files skip gracefully with a clear message if `data/raw/` is absent; run `python scripts/download_osm.py` first to repopulate them.
+
 To regenerate all processed GIS layers, assets, demand zones, flow templates, and scenario schedules from the real raw OpenStreetMap exports:
 
 ```bash
@@ -394,7 +413,7 @@ python scripts/generate_assets.py
 python scripts/create_sample_scenarios.py
 ```
 
-*(Note: Do NOT execute `download_osm.py`; the raw exports in `digital-twin/data/raw/` serve as the verified ground truth).*
+*(Note: `scripts/download_osm.py` is provided for reference. The manual overpass-turbo exports in `data/raw/` are the verified ground truth; running the downloader again may produce slightly different OSM snapshots.)*
 
 ---
 

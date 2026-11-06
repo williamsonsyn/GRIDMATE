@@ -114,7 +114,8 @@ def test_geojson_validity_and_bounds(filename, bbox_name, bbox):
 
 def test_metadata_source_is_real_osm():
     metadata_path = RAW_DIR / "metadata.json"
-    assert metadata_path.exists(), "metadata.json missing in data/raw/"
+    if not metadata_path.exists():
+        pytest.skip("data/raw/ is gitignored — run scripts/download_osm.py then process_data.py to populate it")
     with open(metadata_path, "r", encoding="utf-8") as f:
         meta = json.load(f)
 
@@ -783,4 +784,84 @@ def test_night_time_solar_zero_rule():
             f"Hour 19:00: asset type solar must be 0 at night, got {row['solar_kw']} kW in peak_demand"
         )
 
+
+# ==========================================
+# 8. Gaps from audit (added per checklist)
+# ==========================================
+
+def test_energy_balance_all_scenarios_all_rows():
+    """Energy conservation: (solar+wind+hydro+battery+grid) == (load+curtailment) for every row
+    in every scenario and sample_dispatch, with 1 kW tolerance. Reports scenario/hour on failure."""
+    files = {sc: SCENARIO_DIR / f"{sc}.json" for sc in REQUIRED_SCENARIOS}
+    files["sample_dispatch"] = DATA_DIR / "sample_dispatch.json"
+    for sc, fpath in files.items():
+        d = json.load(open(fpath))
+        rows = d.get("dispatch", [])
+        for i, row in enumerate(rows):
+            ts = row.get("timestamp", str(i))
+            balance = (row["solar_kw"] + row["wind_kw"] + row["hydro_kw"] +
+                       row["battery_kw"] + row["grid_kw"]) - (row["load_kw"] + row["curtailment_kw"])
+            assert abs(balance) <= 1.0, (
+                f"{sc} row {i} ts={ts}: energy balance error {balance:.2f} kW "
+                f"(generation+battery_kw must equal load+curtailment)"
+            )
+
+
+def test_no_excluded_solar_osm_id():
+    """Rajmachi solar site (way/1176889251) must not appear in assets.geojson or generate_assets.py output."""
+    assets = json.load(open(DATA_DIR / "assets.geojson"))
+    for f in assets["features"]:
+        p = f["properties"]
+        osm_id = p.get("osm_id", "")
+        assert osm_id != "way/1176889251", (
+            f"Excluded solar OSM id way/1176889251 found in asset {p.get('id')}. "
+            "Remove it from generate_assets.py EXCLUDED_SOLAR_OSM_IDS."
+        )
+    # Also verify the script excludes it in source
+    gen_src = (BASE_DIR / "scripts" / "generate_assets.py").read_text(encoding="utf-8")
+    assert "1176889251" in gen_src, (
+        "EXCLUDED_SOLAR_OSM_IDS in generate_assets.py must list way/1176889251 so it cannot be regenerated."
+    )
+
+
+def test_solar_total_capacity_600kw():
+    """Total solar capacity in assets.geojson must equal 600 kW."""
+    assets = json.load(open(DATA_DIR / "assets.geojson"))
+    total = sum(f["properties"]["capacity_kw"] for f in assets["features"]
+                if f["properties"]["type"] == "solar")
+    assert abs(total - 600.0) < 0.1, f"Solar total capacity is {total} kW, expected 600 kW"
+
+
+def test_scenario_load_error_handling():
+    """index.html loadScenario must check res.ok before calling res.json()."""
+    html = (BASE_DIR / "map" / "index.html").read_text(encoding="utf-8")
+    # Find the loadScenario function block
+    idx = html.find("async function loadScenario(")
+    assert idx != -1, "loadScenario function not found in index.html"
+    block = html[idx:idx + 400]
+    assert "res.ok" in block, (
+        "loadScenario() in index.html must check res.ok before res.json() "
+        "so a 404/500 from the server is surfaced as an error rather than a JSON parse error."
+    )
+
+
+def test_supply_vs_load_label_in_ui():
+    """The balance metric card must say 'Supply vs Load Balance', not 'Generation vs Load Balance'."""
+    html = (BASE_DIR / "map" / "index.html").read_text(encoding="utf-8")
+    assert "Generation vs Load Balance" not in html, (
+        "index.html still uses 'Generation vs Load Balance'. "
+        "Grid import is supply, not generation — rename to 'Supply vs Load Balance'."
+    )
+    assert "Supply vs Load Balance" in html, (
+        "index.html must contain 'Supply vs Load Balance' label."
+    )
+
+
+def test_flow_lines_labelled_schematic():
+    """Energy flow lines layer toggle in index.html must include the word 'schematic'."""
+    html = (BASE_DIR / "map" / "index.html").read_text(encoding="utf-8")
+    assert "schematic" in html.lower(), (
+        "index.html must label the energy flow lines as '(schematic)' in the layer toggle, "
+        "because they are simulated topology lines not real network data."
+    )
 

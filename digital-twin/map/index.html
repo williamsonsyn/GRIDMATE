@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>GridMate — Lonavala Digital Twin & Energy GIS</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E⚡%3C/text%3E%3C/svg%3E" />
 
   <!-- MapLibre GL JS -->
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" />
@@ -602,10 +603,10 @@
   <div class="top-bar">
     <div class="brand-title">⚡ GridMate <span>Digital Twin</span></div>
     <div class="sim-badge">Simulated prototype assets</div>
-    <button id="btn-zoom-assets" class="view-btn" title="Focus on Lonavala-Khandala energy cluster">
+    <button id="btn-zoom-assets" class="view-btn" title="Focus on Lonavala-Khandala energy cluster" aria-label="Zoom to Assets">
       📍 Zoom to Assets
     </button>
-    <button id="btn-zoom-context" class="view-btn" title="Fit to wider regional context">
+    <button id="btn-zoom-context" class="view-btn" title="Fit to wider regional context" aria-label="Regional View">
       🗺️ Regional View
     </button>
   </div>
@@ -617,7 +618,7 @@
 
   <!-- Bottom-Center 24-Hour Time Slider Control -->
   <div class="time-control-bar" id="time-control-bar">
-    <button id="btn-play-pause" class="play-btn" title="Play / Pause simulation">▶</button>
+    <button id="btn-play-pause" class="play-btn" title="Play / Pause simulation" aria-label="Play / Pause">▶</button>
     <div class="slider-container">
       <div class="slider-header">
         <span class="slider-title">24-Hour Timeline</span>
@@ -629,7 +630,7 @@
 
   <!-- Sidebar Control Panel -->
   <div class="panel-wrapper" id="panel-wrapper">
-    <button id="panel-toggle" class="panel-toggle-btn" title="Collapse / Expand Control Panel">▶</button>
+    <button id="panel-toggle" class="panel-toggle-btn" title="Collapse / Expand Control Panel" aria-label="Toggle control panel">▶</button>
     <div class="control-panel">
 
       <!-- Basemap Switcher -->
@@ -679,7 +680,7 @@
             <div id="m-soc" class="metric-val purple">-- kWh</div>
           </div>
           <div class="metric-card full-width">
-            <div class="metric-label">Generation vs Load Balance</div>
+            <div class="metric-label">Supply vs Load Balance</div>
             <div id="m-balance" class="metric-val purple" style="font-size: 0.90rem;">-- kW gen / -- kW load</div>
           </div>
         </div>
@@ -712,7 +713,7 @@
         <div class="layer-item">
           <div class="layer-label-group">
             <span class="layer-color-dot" style="background:#6366f1;"></span>
-            <span>Energy Flow Lines</span>
+            <span>Energy Flow Lines <span style="font-size:0.75em;opacity:0.65;">(schematic)</span></span>
           </div>
           <label class="switch">
             <input type="checkbox" id="toggle-flow" checked />
@@ -890,6 +891,7 @@
     function updateSliderBounds() {
       const slider = document.getElementById('time-slider');
       const playBtn = document.getElementById('btn-play-pause');
+      const sliderTitle = document.querySelector('.slider-title');
       if (!slider || !playBtn) return;
 
       if (!currentDispatchArray || currentDispatchArray.length <= 1) {
@@ -899,6 +901,10 @@
         slider.value = "0";
         playBtn.disabled = true;
         playBtn.title = "Single timestamp scenario (playback disabled)";
+        playBtn.setAttribute('aria-label', 'Playback unavailable for single-snapshot scenario');
+        const ts = (currentDispatchArray && currentDispatchArray[0] && currentDispatchArray[0].timestamp) || '';
+        const timeStr = ts.includes('T') ? ts.split('T')[1].substring(0, 5) : (ts || '--:--');
+        if (sliderTitle) sliderTitle.textContent = 'Snapshot at ' + timeStr;
       } else {
         slider.disabled = false;
         slider.min = "0";
@@ -906,6 +912,8 @@
         slider.value = String(currentTimeIndex);
         playBtn.disabled = false;
         playBtn.title = "Play / Pause 24-hour simulation";
+        playBtn.setAttribute('aria-label', 'Play / Pause');
+        if (sliderTitle) sliderTitle.textContent = '24-Hour Timeline';
       }
     }
 
@@ -921,6 +929,7 @@
         }
 
         const res = await fetch(scenarioFile);
+        if (!res.ok) throw new Error(`HTTP ${res.status} loading scenario ${scenarioId}`);
         currentScenarioData = await res.json();
 
         currentDispatchArray = Array.isArray(currentScenarioData.dispatch) && currentScenarioData.dispatch.length > 0
