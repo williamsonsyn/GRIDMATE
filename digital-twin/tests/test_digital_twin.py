@@ -31,8 +31,8 @@ RAW_DIR = DATA_DIR / "raw"
 SCENARIO_DIR = DATA_DIR / "scenarios"
 
 # Two bounding boxes as defined in the contract:
-CONTEXT_BBOX = [73.25, 18.62, 73.62, 18.90]  # [min_lon, min_lat, max_lon, max_lat]
-ASSET_BBOX = [73.33, 18.68, 73.48, 18.81]    # Lonavala-Khandala core
+CONTEXT_BBOX = [73.25, 18.62, 73.62, 18.92]  # [min_lon, min_lat, max_lon, max_lat]
+ASSET_BBOX = [73.33, 18.70, 73.61, 18.91]    # Lonavala-Khandala core & wind ridge
 
 REQUIRED_ASSET_TYPES = {"solar", "wind", "hydro", "battery", "grid", "demand"}
 REQUIRED_SCENARIOS = {"normal", "cloudy", "heavy_monsoon", "high_wind", "peak_demand"}
@@ -221,13 +221,13 @@ def test_asset_spatial_constraints():
                 f"Hydro asset {aid} is {dist_to_water:.1f} m from water polygon edge; must be <= 100 m on shoreline"
             )
 
-        # 4. Wind assets checks: high ground inside Lonavala-Khandala
+        # 4. Wind assets checks: high ground on real OSM wind ridge
         if props.get("type") == "wind":
-            assert 73.34 <= lon <= 73.39, (
-                f"Wind asset {aid} ({props.get('name')}) at lon {lon} not on Lonavala-Khandala ridge"
+            assert 73.54 <= lon <= 73.61, (
+                f"Wind asset {aid} ({props.get('name')}) at lon {lon} not on real OSM wind ridge"
             )
-            assert 18.70 <= lat <= 18.80, (
-                f"Wind asset {aid} ({props.get('name')}) at lat {lat} outside Lonavala-Khandala highlands"
+            assert 18.80 <= lat <= 18.91, (
+                f"Wind asset {aid} ({props.get('name')}) at lat {lat} outside real OSM wind ridge"
             )
 
     assert hydro_found, "Missing required hydro asset in assets.geojson"
@@ -603,13 +603,13 @@ def test_demand_zones_load_conservation_24h():
 # ==========================================
 
 def test_assets_directory_count_matches_geojson():
-    """Verifies that assets directory count matches the number of features in assets.geojson (8)."""
+    """Verifies that assets directory count matches the number of features in assets.geojson (10)."""
     assets_file = DATA_DIR / "assets.geojson"
     with open(assets_file, "r", encoding="utf-8") as f:
         assets_data = json.load(f)
 
     feature_count = len(assets_data["features"])
-    assert feature_count == 8, f"Expected 8 features in assets.geojson, found {feature_count}"
+    assert feature_count == 10, f"Expected 10 features in assets.geojson, found {feature_count}"
 
     # Verify map/index.html populates directory immediately on asset load and hooks click events
     index_html = (BASE_DIR / "map" / "index.html").read_text(encoding="utf-8")

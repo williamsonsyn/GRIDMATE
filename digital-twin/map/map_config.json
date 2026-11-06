@@ -5,11 +5,11 @@
   "zoom": 11.2,
   "pitch": 0,
   "bearing": 0,
-  "context_bbox": [73.25, 18.62, 73.62, 18.90],
-  "asset_bbox": [73.33, 18.68, 73.48, 18.81],
+  "context_bbox": [73.25, 18.62, 73.62, 18.92],
+  "asset_bbox": [73.33, 18.70, 73.61, 18.91],
   "bounds": [
     [73.2500, 18.6200],
-    [73.6200, 18.9000]
+    [73.6200, 18.9200]
   ],
   "basemaps": {
     "streets": {
@@ -75,6 +75,14 @@
       "type": "line",
       "order": 2,
       "default_visible": true
+    },
+    {
+      "id": "power-lines",
+      "name": "Power Lines (OSM)",
+      "source_file": "../data/power_lines.geojson",
+      "type": "line",
+      "order": 3,
+      "default_visible": false
     },
     {
       "id": "demand-zones",

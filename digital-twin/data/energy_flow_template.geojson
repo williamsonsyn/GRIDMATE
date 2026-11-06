@@ -13,7 +13,7 @@
         "target_name": "Lonavala Central Demand Hub (Simulated)",
         "default_flow_kw": 0.0,
         "is_synthetic": true,
-        "note": "Simulated prototype asset. Coordinates are illustrative, not verified real infrastructure."
+        "note": "Simulated prototype asset. Coordinates are illustrative, not surveyed real infrastructure."
       },
       "geometry": {
         "type": "LineString",
@@ -40,7 +40,7 @@
         "target_name": "Lonavala Central Demand Hub (Simulated)",
         "default_flow_kw": 0.0,
         "is_synthetic": true,
-        "note": "Simulated prototype asset. Coordinates are illustrative, not verified real infrastructure."
+        "note": "Simulated prototype asset. Coordinates are illustrative, not surveyed real infrastructure."
       },
       "geometry": {
         "type": "LineString",
@@ -62,19 +62,19 @@
         "id": "flow_wind_01_to_demand",
         "source_id": "wind_01",
         "source_type": "wind",
-        "source_name": "Wind Turbine Site 01 - Khandala Ridge (Simulated)",
+        "source_name": "Wind Turbine Cluster 01 - Southern Ridge (Simulated)",
         "target_id": "demand_hub_01",
         "target_name": "Lonavala Central Demand Hub (Simulated)",
         "default_flow_kw": 0.0,
         "is_synthetic": true,
-        "note": "Simulated prototype asset. Coordinates are illustrative, not verified real infrastructure."
+        "note": "Simulated prototype asset. Coordinates are illustrative, not surveyed real infrastructure."
       },
       "geometry": {
         "type": "LineString",
         "coordinates": [
           [
-            73.365,
-            18.765
+            73.561944,
+            18.811286
           ],
           [
             73.407,
@@ -89,19 +89,73 @@
         "id": "flow_wind_02_to_demand",
         "source_id": "wind_02",
         "source_type": "wind",
-        "source_name": "Wind Turbine Site 02 - Duke's Nose Ridge (Simulated)",
+        "source_name": "Wind Turbine Cluster 02 - Lower Central Ridge (Simulated)",
         "target_id": "demand_hub_01",
         "target_name": "Lonavala Central Demand Hub (Simulated)",
         "default_flow_kw": 0.0,
         "is_synthetic": true,
-        "note": "Simulated prototype asset. Coordinates are illustrative, not verified real infrastructure."
+        "note": "Simulated prototype asset. Coordinates are illustrative, not surveyed real infrastructure."
       },
       "geometry": {
         "type": "LineString",
         "coordinates": [
           [
-            73.372,
-            18.728
+            73.557631,
+            18.821543
+          ],
+          [
+            73.407,
+            18.752
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "flow_wind_03_to_demand",
+        "source_id": "wind_03",
+        "source_type": "wind",
+        "source_name": "Wind Turbine Cluster 03 - Upper Central Ridge (Simulated)",
+        "target_id": "demand_hub_01",
+        "target_name": "Lonavala Central Demand Hub (Simulated)",
+        "default_flow_kw": 0.0,
+        "is_synthetic": true,
+        "note": "Simulated prototype asset. Coordinates are illustrative, not surveyed real infrastructure."
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            73.554519,
+            18.832855
+          ],
+          [
+            73.407,
+            18.752
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "flow_wind_04_to_demand",
+        "source_id": "wind_04",
+        "source_type": "wind",
+        "source_name": "Wind Turbine Cluster 04 - Northern Ridge (Simulated)",
+        "target_id": "demand_hub_01",
+        "target_name": "Lonavala Central Demand Hub (Simulated)",
+        "default_flow_kw": 0.0,
+        "is_synthetic": true,
+        "note": "Simulated prototype asset. Coordinates are illustrative, not surveyed real infrastructure."
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            73.594977,
+            18.89855
           ],
           [
             73.407,
@@ -121,7 +175,7 @@
         "target_name": "Lonavala Central Demand Hub (Simulated)",
         "default_flow_kw": 0.0,
         "is_synthetic": true,
-        "note": "Simulated prototype asset. Coordinates are illustrative, not verified real infrastructure."
+        "note": "Simulated prototype asset. Coordinates are illustrative, not surveyed real infrastructure."
       },
       "geometry": {
         "type": "LineString",
@@ -148,14 +202,14 @@
         "target_name": "Lonavala Central Demand Hub (Simulated)",
         "default_flow_kw": 0.0,
         "is_synthetic": true,
-        "note": "Simulated prototype asset. Coordinates are illustrative, not verified real infrastructure."
+        "note": "Simulated prototype asset. Coordinates are illustrative, not surveyed real infrastructure."
       },
       "geometry": {
         "type": "LineString",
         "coordinates": [
           [
-            73.424,
-            18.747
+            73.41214,
+            18.74748
           ],
           [
             73.407,
@@ -170,19 +224,19 @@
         "id": "flow_grid_01_to_demand",
         "source_id": "grid_01",
         "source_type": "grid",
-        "source_name": "Grid Intertie 01 - Lonavala 110kV Substation (Simulated)",
+        "source_name": "Grid Intertie 01 - Lonavala Substation (Simulated)",
         "target_id": "demand_hub_01",
         "target_name": "Lonavala Central Demand Hub (Simulated)",
         "default_flow_kw": 0.0,
         "is_synthetic": true,
-        "note": "Simulated prototype asset. Coordinates are illustrative, not verified real infrastructure."
+        "note": "Simulated prototype asset. Coordinates are illustrative, not surveyed real infrastructure."
       },
       "geometry": {
         "type": "LineString",
         "coordinates": [
           [
-            73.425,
-            18.746
+            73.41134,
+            18.74778
           ],
           [
             73.407,

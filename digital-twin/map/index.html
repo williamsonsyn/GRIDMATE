@@ -564,115 +564,6 @@
       border: 2px solid #ffffff;
     }
 
-    /* Popup Styling */
-    .maplibregl-popup-content {
-      background: #0f172a !important;
-      color: #f8fafc !important;
-      border: 1px solid #334155;
-      border-radius: 10px;
-      padding: 14px 16px;
-      font-size: 0.85rem;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.6);
-      max-width: 320px;
-    }
-
-    .maplibregl-popup-close-button {
-      color: #94a3b8;
-      padding: 4px 8px;
-    }
-
-    .popup-title {
-      font-weight: 700;
-      font-size: 0.95rem;
-      margin-bottom: 8px;
-      color: #ffffff;
-      border-bottom: 1px solid #334155;
-      padding-bottom: 6px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 6px;
-      flex-wrap: wrap;
-    }
-
-    .popup-sim-tag {
-      font-size: 0.65rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      background: #dc2626;
-      color: #ffffff;
-      padding: 2px 7px;
-      border-radius: 9999px;
-      box-shadow: 0 0 6px rgba(220, 38, 38, 0.4);
-    }
-
-    .popup-illustrative-tag {
-      font-size: 0.65rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      background: #7c3aed;
-      color: #ffffff;
-      padding: 2px 7px;
-      border-radius: 9999px;
-    }
-
-    .popup-row {
-      display: flex;
-      justify-content: space-between;
-      margin: 4px 0;
-    }
-
-    .popup-label { color: var(--text-muted); }
-    .popup-val { font-weight: 600; color: #f8fafc; }
-
-    /* Utilization bar in popup */
-    .popup-util-container {
-      margin: 6px 0;
-    }
-
-    .popup-util-bar-track {
-      width: 100%;
-      height: 6px;
-      background: #334155;
-      border-radius: 3px;
-      overflow: hidden;
-      margin-top: 3px;
-    }
-
-    .popup-util-bar-fill {
-      height: 100%;
-      background: #38bdf8;
-      border-radius: 3px;
-      transition: width 0.3s ease;
-    }
-
-    .status-badge {
-      display: inline-block;
-      padding: 2px 7px;
-      border-radius: 9999px;
-      font-size: 0.7rem;
-      font-weight: 700;
-      text-transform: uppercase;
-    }
-
-    .status-active { background: #166534; color: #86efac; }
-    .status-discharging { background: #065f46; color: #6ee7b7; }
-    .status-charging { background: #075985; color: #7dd3fc; }
-    .status-idle { background: #334155; color: #cbd5e1; }
-    .status-not_supplying { background: #475569; color: #94a3b8; }
-
-    .popup-disclaimer {
-      font-size: 0.68rem;
-      color: #cbd5e1;
-      background: rgba(220, 38, 38, 0.15);
-      border-left: 3px solid #ef4444;
-      padding: 5px 8px;
-      margin-top: 8px;
-      border-radius: 2px;
-    }
-
     /* Attribution Bar */
     .custom-attribution {
       position: absolute;
@@ -858,6 +749,26 @@
             <span class="slider"></span>
           </label>
         </div>
+        <div class="layer-item">
+          <div class="layer-label-group">
+            <span class="layer-color-dot" style="background:#a855f7;"></span>
+            <span>Power Lines (OSM)</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="toggle-power" />
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="layer-item">
+          <div class="layer-label-group">
+            <span class="layer-color-dot" style="background:#10b981;"></span>
+            <span>3D Terrain (Terrarium DEM)</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="toggle-terrain" />
+            <span class="slider"></span>
+          </label>
+        </div>
       </div>
 
       <!-- Asset Types Legend -->
@@ -892,381 +803,88 @@
     </div>
   </div>
 
-  <script>
-    let map = null;
-    let config = null;
-    let rawAssets = null;
-    let rawWater = null;
-    let rawRoads = null;
-    let rawDemandZones = null;
+  <script type="module">
+    import {
+      init,
+      ASSET_TYPE_COLORS,
+      formatTimeLabel,
+      computeMetrics
+    } from './gridmateMap.js';
 
+    let mapController = null;
     let currentScenarioData = null;
     let currentDispatchArray = [];
     let currentTimeIndex = 0;
     let currentAppliedAssets = null;
-    let currentFlowData = null;
-    let currentDemandData = null;
     let currentBasemap = 'streets';
+    let isTerrainActive = false;
 
     // Playback state
     let isPlaying = false;
     let playTimer = null;
 
-    // Active popup tracking
-    let activePopup = null;
-    let activePopupAssetId = null;
-
-    // Animation frame for moving flow dots
-    let animFrameId = null;
-
-    const ASSET_TYPE_COLORS = {
-      solar: '#f59e0b',
-      wind: '#06b6d4',
-      hydro: '#3b82f6',
-      battery: '#10b981',
-      grid: '#ef4444',
-      demand: '#8b5cf6'
-    };
-
-    const DOT_COLORS = {
-      solar: '#fef08a',
-      wind: '#a5f3fc',
-      hydro: '#93c5fd',
-      battery: '#6ee7b7',
-      grid: '#fca5a5'
-    };
-
-    async function initApp() {
-      try {
-        const [cfgRes, assetsRes, waterRes, roadsRes, demandRes, dispatchRes] = await Promise.all([
-          fetch('map_config.json').then(r => r.json()),
-          fetch('../data/assets.geojson').then(r => r.json()),
-          fetch('../data/water_features.geojson').then(r => r.json()),
-          fetch('../data/roads.geojson').then(r => r.json()),
-          fetch('../data/demand_zones.geojson').then(r => r.json()),
-          fetch('../data/sample_dispatch.json').then(r => r.json())
-        ]);
-
-        config = cfgRes;
-        rawAssets = assetsRes;
-        rawWater = waterRes;
-        rawRoads = roadsRes;
-        rawDemandZones = demandRes;
-        currentScenarioData = dispatchRes;
-        currentDispatchArray = Array.isArray(currentScenarioData.dispatch) && currentScenarioData.dispatch.length > 0
-          ? currentScenarioData.dispatch
-          : [currentScenarioData];
-
-        updateSliderBounds();
-
-        // 1. Apply timestep 0 immediately to DOM elements (metrics panel, Assets Directory, time label)
-        applyTimeStep(0);
-
-        setupMap();
-      } catch (err) {
-        console.error("Initialization error:", err);
+    function showPageError(msg) {
+      console.error("Initialization error:", msg);
+      const mapEl = document.getElementById('map');
+      if (mapEl && !mapEl.querySelector('.gridmate-error-overlay')) {
+        const safeMsg = (msg || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        mapEl.innerHTML = `
+          <div class="gridmate-error-overlay" style="display:flex; flex-direction:column; align-items:center; justify-content:center; width:100%; height:100%; background:#0f172a; color:#f8fafc; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding:24px; box-sizing:border-box; text-align:center; z-index:100;">
+            <div style="max-width:540px; background:rgba(30,41,59,0.95); border:1px solid #ef4444; border-radius:12px; padding:28px 24px; box-shadow:0 10px 30px rgba(0,0,0,0.6);">
+              <div style="font-size:2.2rem; margin-bottom:12px;">⚠️</div>
+              <h2 style="color:#ef4444; font-size:1.25rem; font-weight:700; margin-bottom:12px;">Initialization Error</h2>
+              <p style="color:#cbd5e1; font-size:0.95rem; line-height:1.5; margin-bottom:16px;">The map could not load because a required core data file failed to load or is invalid:</p>
+              <div style="background:#090d16; border:1px solid #334155; border-radius:6px; padding:12px; font-family:monospace; font-size:0.85rem; color:#f87171; word-break:break-all;">
+                ${safeMsg}
+              </div>
+              <p style="color:#94a3b8; font-size:0.8rem; margin-top:16px;">Check the server log or run data generation scripts in digital-twin/.</p>
+            </div>
+          </div>
+        `;
       }
     }
 
-    function setupMap() {
-      const ctx = config.context_bbox || [73.25, 18.62, 73.62, 18.90];
-      const contextBounds = [[ctx[0], ctx[1]], [ctx[2], ctx[3]]];
-      // Expand context_bbox by 0.05 degrees for maxBounds
-      const maxBounds = [
-        [ctx[0] - 0.05, ctx[1] - 0.05],
-        [ctx[2] + 0.05, ctx[3] + 0.05]
-      ];
-
-      const initialStyle = {
-        version: 8,
-        sources: {
-          'osm-tiles': {
-            type: 'raster',
-            tiles: [
-              'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png',
-              'https://b.tile.openstreetmap.org/{z}/{x}/{y}.png'
-            ],
-            tileSize: 256,
-            maxzoom: 19
-          },
-          'satellite-tiles': {
-            type: 'raster',
-            tiles: [
-              'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
-            ],
-            tileSize: 256,
-            maxzoom: 19
+    async function initApp() {
+      try {
+        const fetchCoreDispatch = async () => {
+          const dispatchFile = '../data/sample_dispatch.json';
+          try {
+            const res = await fetch(dispatchFile);
+            if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText || 'Not Found'}`);
+            const text = await res.text();
+            if (!text || !text.trim()) throw new Error('File is empty (0 bytes)');
+            return JSON.parse(text);
+          } catch (e) {
+            throw new Error(`Failed to load core file: data/sample_dispatch.json (${e.message})`);
           }
-        },
-        layers: [
-          {
-            id: 'background-fallback',
-            type: 'background',
-            paint: { 'background-color': '#0f172a' }
-          },
-          {
-            id: 'satellite-tiles-layer',
-            type: 'raster',
-            source: 'satellite-tiles',
-            layout: { 'visibility': 'none' },
-            minzoom: 0,
-            maxzoom: 19
-          },
-          {
-            id: 'osm-tiles-layer',
-            type: 'raster',
-            source: 'osm-tiles',
-            layout: { 'visibility': 'visible' },
-            minzoom: 0,
-            maxzoom: 19
-          }
-        ]
-      };
+        };
 
-      // TASK 0: maxBounds set to context_bbox expanded by 0.05 degrees, minZoom: 9.8.
-      // No center/zoom overriding fitBounds.
-      map = new maplibregl.Map({
-        container: 'map',
-        style: initialStyle,
-        maxBounds: maxBounds,
-        minZoom: 9.8,
-        attributionControl: false
-      });
+        // Load initial scenario data in parallel with controller setup
+        const [controller, sampleDispatch] = await Promise.all([
+          init('map', {
+            basePath: '../',
+            basemap: 'streets',
+            onAssetClick: (feat, coords) => {
+              // Asset click hooked through controller
+            }
+          }),
+          fetchCoreDispatch()
+        ]);
 
-      map.addControl(new maplibregl.NavigationControl(), 'bottom-right');
+        mapController = controller;
+        currentScenarioData = sampleDispatch;
+        currentDispatchArray = Array.isArray(sampleDispatch.dispatch) && sampleDispatch.dispatch.length > 0
+          ? sampleDispatch.dispatch
+          : [sampleDispatch];
 
-      map.on('load', () => {
-        // TASK 0: On load call map.resize(), then map.fitBounds(context_bbox, {padding: 40, duration: 0})
-        map.resize();
-        map.fitBounds(contextBounds, { padding: 40, duration: 0 });
-
-        addLayers();
-        setupEvents();
-        setupAnimation();
         updateSliderBounds();
+        setupEvents();
 
-        // 1. After assets.geojson, the default dispatch file and the map style have all loaded,
-        // call ONE function that applies the current timestep to everything
+        // Immediate application of timestep 0
         applyTimeStep(0);
-      });
-    }
-
-    function addLayers() {
-      // 1. Water features (OSM)
-      map.addSource('water-src', { type: 'geojson', data: rawWater });
-      map.addLayer({
-        id: 'water-fill',
-        type: 'fill',
-        source: 'water-src',
-        filter: ['==', '$type', 'Polygon'],
-        paint: {
-          'fill-color': '#0284c7',
-          'fill-opacity': 0.55
-        }
-      });
-      map.addLayer({
-        id: 'water-line',
-        type: 'line',
-        source: 'water-src',
-        paint: {
-          'line-color': '#38bdf8',
-          'line-width': ['case', ['==', '$type', 'Polygon'], 1.8, 2.4],
-          'line-opacity': 0.95
-        }
-      });
-
-      // 2. Roads network
-      map.addSource('roads-src', { type: 'geojson', data: rawRoads });
-      map.addLayer({
-        id: 'roads-casing',
-        type: 'line',
-        source: 'roads-src',
-        paint: {
-          'line-color': '#090d16',
-          'line-width': [
-            'match', ['get', 'highway_type'],
-            'motorway', 4.8,
-            'trunk', 4.2,
-            'primary', 3.8,
-            2.8
-          ],
-          'line-opacity': 0.85
-        }
-      });
-      map.addLayer({
-        id: 'roads-line',
-        type: 'line',
-        source: 'roads-src',
-        paint: {
-          'line-color': [
-            'match', ['get', 'highway_type'],
-            'motorway', '#f97316',
-            'trunk', '#fb923c',
-            'primary', '#fbbf24',
-            'secondary', '#38bdf8',
-            '#94a3b8'
-          ],
-          'line-width': [
-            'match', ['get', 'highway_type'],
-            'motorway', 3.0,
-            'trunk', 2.6,
-            'primary', 2.2,
-            1.6
-          ],
-          'line-opacity': 0.95
-        }
-      });
-
-      // 3. Demand Zones (TASK 4: step scale on load_kw, 4 levels)
-      map.addSource('demand-src', { type: 'geojson', data: currentDemandData || rawDemandZones });
-      map.addLayer({
-        id: 'demand-fill',
-        type: 'fill',
-        source: 'demand-src',
-        paint: {
-          'fill-color': [
-            'step',
-            ['coalesce', ['get', 'load_kw'], 0],
-            '#38bdf8', // low: < 120 kW
-            120, '#818cf8', // moderate: 120 - 250 kW
-            250, '#f59e0b', // high: 250 - 400 kW
-            400, '#ef4444'  // peak: >= 400 kW
-          ],
-          'fill-opacity': 0.35
-        }
-      });
-      map.addLayer({
-        id: 'demand-line',
-        type: 'line',
-        source: 'demand-src',
-        paint: {
-          'line-color': '#c084fc',
-          'line-width': 2.0,
-          'line-dasharray': [2, 1]
-        }
-      });
-
-      // 4. Energy Flow lines (TASK 2: width & color scaled by flow_kw, thin grey for 0 kW)
-      map.addSource('flow-src', {
-        type: 'geojson',
-        data: currentFlowData || { type: 'FeatureCollection', features: [] }
-      });
-      map.addLayer({
-        id: 'flow-line',
-        type: 'line',
-        source: 'flow-src',
-        layout: { 'line-join': 'round', 'line-cap': 'round' },
-        paint: {
-          'line-color': [
-            'case',
-            ['<=', ['get', 'flow_kw'], 0], '#475569',
-            [
-              'match', ['get', 'source_type'],
-              'solar', '#f59e0b',
-              'wind', '#06b6d4',
-              'hydro', '#3b82f6',
-              'battery', '#10b981',
-              'grid', '#ef4444',
-              '#6366f1'
-            ]
-          ],
-          'line-width': [
-            'case',
-            ['<=', ['get', 'flow_kw'], 0], 1.2,
-            [
-              'interpolate', ['linear'], ['get', 'flow_kw'],
-              1, 2.0,
-              100, 3.5,
-              300, 5.5,
-              600, 8.0
-            ]
-          ],
-          'line-opacity': [
-            'case',
-            ['<=', ['get', 'flow_kw'], 0], 0.35,
-            0.88
-          ]
-        }
-      });
-
-      // 5. Flow moving dots (TASK 2)
-      map.addSource('flow-dots-src', {
-        type: 'geojson',
-        data: { type: 'FeatureCollection', features: [] }
-      });
-      map.addLayer({
-        id: 'flow-dots-layer',
-        type: 'circle',
-        source: 'flow-dots-src',
-        paint: {
-          'circle-radius': ['coalesce', ['get', 'radius'], 4],
-          'circle-color': ['coalesce', ['get', 'color'], '#ffffff'],
-          'circle-opacity': 0.95,
-          'circle-stroke-width': 1.5,
-          'circle-stroke-color': '#ffffff'
-        }
-      });
-
-      // 6. Assets (Halo ring + Circle + Labels)
-      map.addSource('assets-src', { type: 'geojson', data: currentAppliedAssets || rawAssets });
-
-      map.addLayer({
-        id: 'assets-halo',
-        type: 'circle',
-        source: 'assets-src',
-        paint: {
-          'circle-radius': 18,
-          'circle-color': [
-            'match', ['get', 'status'],
-            'active', '#22c55e',
-            'discharging', '#10b981',
-            'charging', '#0284c7',
-            'not_supplying', '#64748b',
-            '#475569'
-          ],
-          'circle-opacity': 0.45
-        }
-      });
-
-      map.addLayer({
-        id: 'assets-circle',
-        type: 'circle',
-        source: 'assets-src',
-        paint: {
-          'circle-radius': 9.5,
-          'circle-color': [
-            'match', ['get', 'type'],
-            'solar', '#f59e0b',
-            'wind', '#06b6d4',
-            'hydro', '#3b82f6',
-            'battery', '#10b981',
-            'grid', '#ef4444',
-            'demand', '#8b5cf6',
-            '#64748b'
-          ],
-          'circle-stroke-width': 2.5,
-          'circle-stroke-color': '#ffffff'
-        }
-      });
-
-      map.addLayer({
-        id: 'assets-label',
-        type: 'symbol',
-        source: 'assets-src',
-        minzoom: 13,
-        layout: {
-          'text-field': ['get', 'name'],
-          'text-size': 11.5,
-          'text-offset': [0, 1.5],
-          'text-anchor': 'top',
-          'text-max-width': 12
-        },
-        paint: {
-          'text-color': '#0f172a',
-          'text-halo-color': '#ffffff',
-          'text-halo-width': 2.5
-        }
-      });
+      } catch (err) {
+        showPageError(err.message || String(err));
+      }
     }
 
     function updateSliderBounds() {
@@ -1289,15 +907,6 @@
         playBtn.disabled = false;
         playBtn.title = "Play / Pause 24-hour simulation";
       }
-    }
-
-    function formatTimeLabel(ts) {
-      if (!ts) return "00:00";
-      if (typeof ts === 'string' && ts.includes('T')) {
-        const timePart = ts.split('T')[1];
-        return timePart.substring(0, 5);
-      }
-      return String(ts);
     }
 
     async function loadScenario(scenarioId) {
@@ -1338,104 +947,55 @@
       const idx = Math.max(0, Math.min(index, currentDispatchArray.length - 1));
       currentTimeIndex = idx;
 
-      // Update slider and time label
       const slider = document.getElementById('time-slider');
       if (slider && Number(slider.value) !== idx) {
         slider.value = String(idx);
       }
 
-      // TASK 1: All status logic must go through applyDispatch.js
-      const dispatchRow = GridMateDispatch.parseDispatchRow(currentScenarioData, idx);
-      const timeStr = formatTimeLabel(dispatchRow.timestamp);
-      const timeLabel = document.getElementById('time-label');
-      if (timeLabel) timeLabel.innerText = timeStr;
+      // Delegate update to gridmateMap controller
+      if (mapController) {
+        const result = mapController.setDispatch(currentScenarioData, idx);
+        if (result) {
+          currentAppliedAssets = result.appliedAssets;
+          const timeStr = formatTimeLabel(result.dispatchRow.timestamp);
+          const timeLabel = document.getElementById('time-label');
+          if (timeLabel) timeLabel.innerText = timeStr;
 
-      // 1. Apply dispatch to assets via applyDispatch.js
-      currentAppliedAssets = GridMateDispatch.applyDispatch(rawAssets, dispatchRow, currentScenarioData.scenario_id);
-      if (map && typeof map.getSource === 'function') {
-        const aSrc = map.getSource('assets-src');
-        if (aSrc && typeof aSrc.setData === 'function') {
-          aSrc.setData(currentAppliedAssets);
-        }
-      }
-
-      // 2. Build energy flow lines via applyDispatch.js
-      currentFlowData = GridMateDispatch.buildEnergyFlow(dispatchRow, rawAssets);
-      if (map && typeof map.getSource === 'function') {
-        const fSrc = map.getSource('flow-src');
-        if (fSrc && typeof fSrc.setData === 'function') {
-          fSrc.setData(currentFlowData);
-        }
-      }
-
-      // 3. Distribute demand load across zones proportionally via applyDispatch.js
-      currentDemandData = GridMateDispatch.distributeDemandLoad(rawDemandZones, dispatchRow.load_kw);
-      if (map && typeof map.getSource === 'function') {
-        const dSrc = map.getSource('demand-src');
-        if (dSrc && typeof dSrc.setData === 'function') {
-          dSrc.setData(currentDemandData);
-        }
-      }
-
-      // 4. Update metrics panel derived from CURRENT dispatch row
-      updateMetricsPanel(dispatchRow);
-
-      // 5. Update Assets Directory rows with outputs and statuses matching popups
-      renderAssetsList(currentAppliedAssets);
-
-      // 6. Refresh open popup if visible
-      if (activePopup && activePopupAssetId) {
-        const found = currentAppliedAssets.features.find(f => f.properties && f.properties.id === activePopupAssetId);
-        if (found) {
-          activePopup.setHTML(createAssetPopupHTML(found.properties, timeStr));
+          updateMetricsPanel(result.dispatchRow);
+          renderAssetsList(result.appliedAssets);
         }
       }
     }
 
     function updateMetricsPanel(row) {
-      const loadKw = Number(row.load_kw) || 0;
-      const solarKw = Number(row.solar_kw) || 0;
-      const windKw = Number(row.wind_kw) || 0;
-      const hydroKw = Number(row.hydro_kw) || 0;
-      const gridKw = Number(row.grid_kw) || 0;
-      const batKw = Number(row.battery_kw) || 0;
-      const batDischarge = batKw > 0 ? batKw : 0;
+      const metrics = computeMetrics(row);
 
-      // Hourly renewable generation
-      const reGen = solarKw + windKw + hydroKw + batDischarge;
-      const rePct = loadKw > 0 ? Math.min(100, Math.max(0, (reGen / loadKw) * 100)) : 100;
       const renElem = document.getElementById('m-renewable');
       if (renElem) {
-        renElem.innerText = `${rePct.toFixed(1)}%`;
-        if (rePct >= 90) renElem.className = 'metric-val green';
-        else if (rePct >= 70) renElem.className = 'metric-val amber';
+        renElem.innerText = `${metrics.rePct.toFixed(1)}%`;
+        if (metrics.rePct >= 90) renElem.className = 'metric-val green';
+        else if (metrics.rePct >= 70) renElem.className = 'metric-val amber';
         else renElem.className = 'metric-val red';
       }
 
-      // Grid dependency in current row
-      const gridPct = loadKw > 0 ? Math.min(100, Math.max(0, (gridKw / loadKw) * 100)) : 0;
       const gridElem = document.getElementById('m-grid');
       if (gridElem) {
-        gridElem.innerText = `${gridPct.toFixed(1)}%`;
-        gridElem.className = gridPct > 20 ? 'metric-val red' : (gridPct > 0 ? 'metric-val amber' : 'metric-val green');
+        gridElem.innerText = `${metrics.gridPct.toFixed(1)}%`;
+        gridElem.className = metrics.gridPct > 20 ? 'metric-val red' : (metrics.gridPct > 0 ? 'metric-val amber' : 'metric-val green');
       }
 
-      // Battery status text & mode
-      let batText = 'Idle (0 kW)';
-      if (batKw > 0) batText = `Discharging (${batKw} kW)`;
-      else if (batKw < 0) batText = `Charging (${Math.abs(batKw)} kW)`;
       const batElem = document.getElementById('m-battery');
-      if (batElem) batElem.innerText = batText;
+      if (batElem) batElem.innerText = metrics.batteryMode;
 
-      // Battery SOC
-      const socVal = row.battery_soc_kwh !== undefined ? `${Number(row.battery_soc_kwh).toFixed(0)} kWh` : 'N/A';
       const socElem = document.getElementById('m-soc');
-      if (socElem) socElem.innerText = socVal;
+      if (socElem) {
+        socElem.innerText = metrics.batterySocKwh !== undefined ? `${Number(metrics.batterySocKwh).toFixed(0)} kWh` : 'N/A';
+      }
 
-      // Generation vs Load Balance
-      const genTotal = solarKw + windKw + hydroKw + gridKw + batDischarge;
       const balElem = document.getElementById('m-balance');
-      if (balElem) balElem.innerText = `${genTotal.toFixed(0)} kW gen / ${loadKw.toFixed(0)} kW load`;
+      if (balElem) {
+        balElem.innerText = `${metrics.genTotal.toFixed(0)} kW gen / ${metrics.loadKw.toFixed(0)} kW load`;
+      }
     }
 
     function renderAssetsList(appliedFc) {
@@ -1487,166 +1047,8 @@
     }
 
     function flyToAssetAndOpenPopup(feature) {
-      if (!feature || !feature.geometry) return;
-      const coords = feature.geometry.coordinates.slice();
-      if (map && typeof map.flyTo === 'function') {
-        map.flyTo({ center: coords, zoom: 13.8, speed: 1.2 });
-      }
-      openAssetPopup(feature, coords);
-    }
-
-    function createAssetPopupHTML(p, timeStr) {
-      const status = p.status || 'idle';
-      const statusClass = `status-${status.toLowerCase().replace(/\s+/g, '_')}`;
-      const utilPct = Math.min(100, Math.max(0, Number(p.utilization_percent) || 0));
-
-      let outputRow = '';
-      if (p.type === 'demand') {
-        outputRow = `<div class="popup-row"><span class="popup-label">Current Demand:</span><span class="popup-val">${p.forecast_output_kw !== undefined ? p.forecast_output_kw : 0} kW</span></div>`;
-      } else {
-        outputRow = `<div class="popup-row"><span class="popup-label">Forecast Output:</span><span class="popup-val">${p.forecast_output_kw !== undefined ? p.forecast_output_kw : 0} kW</span></div>`;
-      }
-
-      let batterySocRow = '';
-      if (p.type === 'battery' && p.battery_soc_kwh !== undefined) {
-        batterySocRow = `<div class="popup-row"><span class="popup-label">Battery SOC:</span><span class="popup-val">${p.battery_soc_kwh} kWh</span></div>`;
-      }
-
-      const scenName = (currentScenarioData && (currentScenarioData.scenario_name || currentScenarioData.scenario_id)) || 'Normal Day';
-      const scenarioLabel = (p.scenario || scenName).replace(/_/g, ' ');
-
-      return `
-        <div class="popup-title">
-          <span>${p.name}</span>
-          <span class="popup-sim-tag">Simulated asset</span>
-        </div>
-        <div class="popup-row">
-          <span class="popup-label">Type:</span>
-          <span class="popup-val" style="text-transform: capitalize;">${p.type}</span>
-        </div>
-        <div class="popup-row">
-          <span class="popup-label">Capacity:</span>
-          <span class="popup-val">${p.capacity_kw} kW ${p.capacity_kwh ? `(${p.capacity_kwh} kWh)` : ''}</span>
-        </div>
-        ${outputRow}
-        <div class="popup-util-container">
-          <div class="popup-row" style="margin-bottom: 2px;">
-            <span class="popup-label">Utilization:</span>
-            <span class="popup-val">${utilPct.toFixed(1)}%</span>
-          </div>
-          <div class="popup-util-bar-track">
-            <div class="popup-util-bar-fill" style="width: ${utilPct}%;"></div>
-          </div>
-        </div>
-        <div class="popup-row">
-          <span class="popup-label">Status:</span>
-          <span class="status-badge ${statusClass}">${status}</span>
-        </div>
-        <div class="popup-row">
-          <span class="popup-label">Scenario:</span>
-          <span class="popup-val" style="text-transform: capitalize;">${scenarioLabel}</span>
-        </div>
-        <div class="popup-row">
-          <span class="popup-label">Timestamp:</span>
-          <span class="popup-val">${timeStr}</span>
-        </div>
-        ${batterySocRow}
-        <div class="popup-disclaimer">
-          ${p.note || 'Simulated prototype asset. Coordinates are illustrative.'}
-        </div>
-      `;
-    }
-
-    function openAssetPopup(feature, coords) {
-      if (activePopup) {
-        activePopup.remove();
-      }
-      activePopupAssetId = (feature && feature.properties) ? feature.properties.id : null;
-      const timeElem = document.getElementById('time-label');
-      const timeStr = timeElem ? timeElem.innerText : '00:00';
-      const html = createAssetPopupHTML((feature && feature.properties) || {}, timeStr);
-
-      if (map && typeof maplibregl !== 'undefined' && maplibregl.Popup) {
-        activePopup = new maplibregl.Popup({ offset: 14 })
-          .setLngLat(coords)
-          .setHTML(html)
-          .addTo(map);
-
-        activePopup.on('close', () => {
-          activePopup = null;
-          activePopupAssetId = null;
-        });
-      }
-    }
-
-    // TASK 2: Dynamic energy flow animation via requestAnimationFrame
-    function setupAnimation() {
-      let startTime = performance.now();
-
-      function animateLoop(now) {
-        if (!document.hidden && currentFlowData && currentFlowData.features && map.getSource('flow-dots-src')) {
-          const elapsed = (now - startTime) / 1000;
-          const dotFeatures = [];
-
-          currentFlowData.features.forEach(f => {
-            const kw = Number(f.properties.flow_kw) || 0;
-            // No animation for 0 kW lines
-            if (kw <= 0) return;
-
-            const coords = f.geometry.coordinates;
-            if (!coords || coords.length < 2) return;
-
-            const srcType = f.properties.source_type;
-            const dotColor = DOT_COLORS[srcType] || '#ffffff';
-            const radius = Math.max(3.0, Math.min(6.5, 3.0 + (kw / 120)));
-            const speed = 0.35 + Math.min(1.2, kw / 300); // cycles per second
-
-            // 2 moving dots along each active line
-            const offsets = [0.0, 0.5];
-            offsets.forEach(offset => {
-              const progress = (elapsed * speed + offset) % 1.0;
-              const lon = coords[0][0] + (coords[1][0] - coords[0][0]) * progress;
-              const lat = coords[0][1] + (coords[1][1] - coords[0][1]) * progress;
-
-              dotFeatures.push({
-                type: 'Feature',
-                properties: {
-                  radius: radius,
-                  color: dotColor
-                },
-                geometry: {
-                  type: 'Point',
-                  coordinates: [lon, lat]
-                }
-              });
-            });
-          });
-
-          map.getSource('flow-dots-src').setData({
-            type: 'FeatureCollection',
-            features: dotFeatures
-          });
-        }
-
-        animFrameId = requestAnimationFrame(animateLoop);
-      }
-
-      animFrameId = requestAnimationFrame(animateLoop);
-
-      // Pause animation when tab is hidden
-      document.addEventListener('visibilitychange', () => {
-        if (document.hidden) {
-          if (animFrameId) {
-            cancelAnimationFrame(animFrameId);
-            animFrameId = null;
-          }
-        } else {
-          startTime = performance.now();
-          if (!animFrameId) {
-            animFrameId = requestAnimationFrame(animateLoop);
-          }
-        }
-      });
+      if (!feature || !feature.properties || !mapController) return;
+      mapController.flyToAsset(feature.properties.id);
     }
 
     function startPlayback() {
@@ -1677,51 +1079,50 @@
       }
     }
 
+    function updateAttributionText() {
+      const attrBar = document.getElementById('attribution-bar');
+      if (!attrBar) return;
+
+      let baseText = '© <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap contributors</a>';
+      if (currentBasemap === 'satellite') {
+        baseText = 'Imagery © Esri, Maxar, Earthstar Geographics | © <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap contributors</a>';
+      }
+
+      if (isTerrainActive) {
+        baseText += ' | Elevation data: Mapzen/AWS Terrain Tiles';
+      }
+
+      attrBar.innerHTML = baseText;
+    }
+
     function switchBasemap(name) {
       currentBasemap = name;
       document.querySelectorAll('.base-btn').forEach(b => {
         b.classList.toggle('active', b.dataset.base === name);
       });
 
-      const osmVis = name === 'streets' ? 'visible' : 'none';
-      const satVis = name === 'satellite' ? 'visible' : 'none';
-
-      if (map.getLayer('osm-tiles-layer')) {
-        map.setLayoutProperty('osm-tiles-layer', 'visibility', osmVis);
+      if (mapController) {
+        mapController.setBasemap(name);
       }
-      if (map.getLayer('satellite-tiles-layer')) {
-        map.setLayoutProperty('satellite-tiles-layer', 'visibility', satVis);
-      }
-
-      const attrBar = document.getElementById('attribution-bar');
-      if (attrBar) {
-        if (name === 'satellite') {
-          attrBar.innerHTML = 'Imagery © Esri, Maxar, Earthstar Geographics | © <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap contributors</a>';
-        } else {
-          attrBar.innerHTML = '© <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap contributors</a>';
-        }
-      }
+      updateAttributionText();
     }
 
     function setupEvents() {
-      // TASK 0: Zoom buttons (fit asset_bbox padding 60, context_bbox padding 40)
+      // Zoom buttons
       document.getElementById('btn-zoom-assets').addEventListener('click', () => {
-        const ab = config.asset_bbox || [73.33, 18.68, 73.48, 18.81];
-        map.fitBounds([[ab[0], ab[1]], [ab[2], ab[3]]], { padding: 60 });
+        if (mapController) mapController.zoomToAssets();
       });
 
       document.getElementById('btn-zoom-context').addEventListener('click', () => {
-        const cb = config.context_bbox || [73.25, 18.62, 73.62, 18.90];
-        map.fitBounds([[cb[0], cb[1]], [cb[2], cb[3]]], { padding: 40 });
+        if (mapController) mapController.zoomToRegion();
       });
 
-      // TASK 1: Time Slider and Play/Pause controls
+      // Play/Pause & slider
       const playBtn = document.getElementById('btn-play-pause');
       playBtn.addEventListener('click', togglePlayback);
 
       const slider = document.getElementById('time-slider');
       slider.addEventListener('input', (e) => {
-        // Stop playback when the user drags the slider
         stopPlayback();
         applyTimeStep(parseInt(e.target.value, 10));
       });
@@ -1741,7 +1142,7 @@
         panelToggle.innerText = panelWrapper.classList.contains('collapsed') ? '◀' : '▶';
       });
 
-      // TASK 3: Collapsible Assets header toggle
+      // Collapsible Assets header toggle
       const assetsHeader = document.getElementById('assets-list-header');
       const assetsList = document.getElementById('assets-list');
       const assetsChevron = document.getElementById('assets-chevron');
@@ -1756,96 +1157,35 @@
         loadScenario(e.target.value);
       });
 
-      // Layer visibility toggles
+      // Layer toggles
       const layerMap = {
-        'toggle-assets': ['assets-halo', 'assets-circle', 'assets-label'],
-        'toggle-flow': ['flow-line', 'flow-dots-layer'],
-        'toggle-demand': ['demand-fill', 'demand-line'],
-        'toggle-water': ['water-fill', 'water-line'],
-        'toggle-roads': ['roads-casing', 'roads-line']
+        'toggle-assets': 'assets',
+        'toggle-flow': 'flow',
+        'toggle-demand': 'demand',
+        'toggle-water': 'water',
+        'toggle-roads': 'roads',
+        'toggle-power': 'power'
       };
 
-      Object.entries(layerMap).forEach(([checkboxId, layerIds]) => {
+      Object.entries(layerMap).forEach(([checkboxId, layerKey]) => {
         document.getElementById(checkboxId).addEventListener('change', (e) => {
-          const vis = e.target.checked ? 'visible' : 'none';
-          layerIds.forEach(id => {
-            if (map.getLayer(id)) {
-              map.setLayoutProperty(id, 'visibility', vis);
-            }
-          });
+          if (mapController) {
+            mapController.setLayerVisibility(layerKey, e.target.checked);
+          }
         });
       });
 
-      // TASK 3: Asset Click Popup on Map
-      map.on('click', 'assets-circle', (e) => {
-        if (!e.features || e.features.length === 0) return;
-        const clicked = e.features[0];
-        const coords = clicked.geometry.coordinates.slice();
-        // Look up the full current applied feature
-        const aid = clicked.properties.id;
-        const currentFeat = currentAppliedAssets && currentAppliedAssets.features
-          ? currentAppliedAssets.features.find(f => f.properties.id === aid) || clicked
-          : clicked;
-        openAssetPopup(currentFeat, coords);
-      });
-
-      map.on('mouseenter', 'assets-circle', () => { map.getCanvas().style.cursor = 'pointer'; });
-      map.on('mouseleave', 'assets-circle', () => { map.getCanvas().style.cursor = ''; });
-
-      // TASK 4: Demand zones click popup with illustrative zone tag & load_kw
-      map.on('click', 'demand-fill', (e) => {
-        if (!e.features || e.features.length === 0) return;
-        const clicked = e.features[0];
-        const zid = clicked.properties.id;
-        const feat = currentDemandData && currentDemandData.features
-          ? currentDemandData.features.find(f => f.properties.id === zid) || clicked
-          : clicked;
-        const p = feat.properties;
-        const timeStr = document.getElementById('time-label').innerText;
-        const totalLoad = currentDispatchArray[currentTimeIndex]?.load_kw || 900;
-
-        const html = `
-          <div class="popup-title">
-            <span>${p.name}</span>
-            <span class="popup-illustrative-tag">illustrative zones (hand-defined polygons)</span>
-          </div>
-          <div class="popup-row">
-            <span class="popup-label">Zone Type:</span>
-            <span class="popup-val" style="text-transform: capitalize;">${p.zone_type}</span>
-          </div>
-          <div class="popup-row">
-            <span class="popup-label">Base Load:</span>
-            <span class="popup-val">${p.base_load_kw} kW</span>
-          </div>
-          <div class="popup-row">
-            <span class="popup-label">Current Load:</span>
-            <span class="popup-val" style="color:#38bdf8; font-weight:700;">${p.load_kw || p.base_load_kw} kW</span>
-          </div>
-          <div class="popup-row">
-            <span class="popup-label">Share of Load:</span>
-            <span class="popup-val">${p.load_share_pct || (((p.base_load_kw || 0)/900)*100).toFixed(1)}%</span>
-          </div>
-          <div class="popup-row">
-            <span class="popup-label">Total System Load:</span>
-            <span class="popup-val">${totalLoad} kW</span>
-          </div>
-          <div class="popup-row">
-            <span class="popup-label">Timestamp:</span>
-            <span class="popup-val">${timeStr}</span>
-          </div>
-          <div class="popup-disclaimer">
-            illustrative zones (hand-defined polygons), not OSM-derived. Base load ${p.base_load_kw} kW of 900 kW total.
-          </div>
-        `;
-
-        new maplibregl.Popup({ offset: 10 })
-          .setLngLat(e.lngLat)
-          .setHTML(html)
-          .addTo(map);
-      });
-
-      map.on('mouseenter', 'demand-fill', () => { map.getCanvas().style.cursor = 'pointer'; });
-      map.on('mouseleave', 'demand-fill', () => { map.getCanvas().style.cursor = ''; });
+      // 3D Terrain toggle (TASK 4)
+      const terrainToggle = document.getElementById('toggle-terrain');
+      if (terrainToggle) {
+        terrainToggle.addEventListener('change', (e) => {
+          isTerrainActive = e.target.checked;
+          if (mapController) {
+            mapController.setTerrain(isTerrainActive);
+          }
+          updateAttributionText();
+        });
+      }
     }
 
     window.addEventListener('DOMContentLoaded', initApp);

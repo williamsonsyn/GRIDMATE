@@ -18,7 +18,8 @@
         "status": "active",
         "is_synthetic": true,
         "data_source": "synthetic_demo",
-        "note": "Simulated prototype asset. Coordinates are illustrative, not verified real infrastructure."
+        "location_source": "synthetic_siting",
+        "note": "Simulated prototype asset. Coordinates are illustrative, not surveyed real infrastructure."
       },
       "geometry": {
         "type": "Point",
@@ -38,7 +39,8 @@
         "status": "active",
         "is_synthetic": true,
         "data_source": "synthetic_demo",
-        "note": "Simulated prototype asset. Coordinates are illustrative, not verified real infrastructure."
+        "location_source": "synthetic_siting",
+        "note": "Simulated prototype asset. Coordinates are illustrative, not surveyed real infrastructure."
       },
       "geometry": {
         "type": "Point",
@@ -53,18 +55,19 @@
       "properties": {
         "id": "wind_01",
         "type": "wind",
-        "name": "Wind Turbine Site 01 - Khandala Ridge (Simulated)",
-        "capacity_kw": 200.0,
+        "name": "Wind Turbine Cluster 01 - Southern Ridge (Simulated)",
+        "capacity_kw": 100.0,
         "status": "active",
         "is_synthetic": true,
         "data_source": "synthetic_demo",
-        "note": "Simulated prototype asset. Coordinates are illustrative, not verified real infrastructure."
+        "location_source": "osm",
+        "note": "Simulated prototype asset. Sited at real OSM wind turbine node/2925719473 (cluster of 6 turbines). Coordinates are illustrative, not surveyed infrastructure."
       },
       "geometry": {
         "type": "Point",
         "coordinates": [
-          73.365,
-          18.765
+          73.561944,
+          18.811286
         ]
       }
     },
@@ -73,18 +76,61 @@
       "properties": {
         "id": "wind_02",
         "type": "wind",
-        "name": "Wind Turbine Site 02 - Duke's Nose Ridge (Simulated)",
-        "capacity_kw": 150.0,
+        "name": "Wind Turbine Cluster 02 - Lower Central Ridge (Simulated)",
+        "capacity_kw": 100.0,
         "status": "active",
         "is_synthetic": true,
         "data_source": "synthetic_demo",
-        "note": "Simulated prototype asset. Coordinates are illustrative, not verified real infrastructure."
+        "location_source": "osm",
+        "note": "Simulated prototype asset. Sited at real OSM wind turbine node/2925719846 (cluster of 8 turbines). Coordinates are illustrative, not surveyed infrastructure."
       },
       "geometry": {
         "type": "Point",
         "coordinates": [
-          73.372,
-          18.728
+          73.557631,
+          18.821543
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "wind_03",
+        "type": "wind",
+        "name": "Wind Turbine Cluster 03 - Upper Central Ridge (Simulated)",
+        "capacity_kw": 75.0,
+        "status": "active",
+        "is_synthetic": true,
+        "data_source": "synthetic_demo",
+        "location_source": "osm",
+        "note": "Simulated prototype asset. Sited at real OSM wind turbine node/2925719130 (cluster of 10 turbines). Coordinates are illustrative, not surveyed infrastructure."
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          73.554519,
+          18.832855
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "wind_04",
+        "type": "wind",
+        "name": "Wind Turbine Cluster 04 - Northern Ridge (Simulated)",
+        "capacity_kw": 75.0,
+        "status": "active",
+        "is_synthetic": true,
+        "data_source": "synthetic_demo",
+        "location_source": "osm",
+        "note": "Simulated prototype asset. Sited at real OSM wind turbine node/2714783065 (cluster of 4 turbines). Coordinates are illustrative, not surveyed infrastructure."
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          73.594977,
+          18.89855
         ]
       }
     },
@@ -98,7 +144,8 @@
         "status": "active",
         "is_synthetic": true,
         "data_source": "synthetic_demo",
-        "note": "Simulated prototype asset. Coordinates are illustrative, not verified real infrastructure."
+        "location_source": "osm_shoreline",
+        "note": "Simulated prototype asset sited on real Valvan reservoir shoreline."
       },
       "geometry": {
         "type": "Point",
@@ -118,14 +165,15 @@
         "status": "active",
         "is_synthetic": true,
         "data_source": "synthetic_demo",
-        "note": "Simulated prototype asset. Coordinates are illustrative, not verified real infrastructure.",
+        "location_source": "osm_nearest_substation",
+        "note": "Simulated prototype asset placed adjacent to real OSM substation way/1535010608.",
         "capacity_kwh": 1000.0
       },
       "geometry": {
         "type": "Point",
         "coordinates": [
-          73.424,
-          18.747
+          73.41214,
+          18.74748
         ]
       }
     },
@@ -134,18 +182,19 @@
       "properties": {
         "id": "grid_01",
         "type": "grid",
-        "name": "Grid Intertie 01 - Lonavala 110kV Substation (Simulated)",
+        "name": "Grid Intertie 01 - Lonavala Substation (Simulated)",
         "capacity_kw": 1500.0,
         "status": "active",
         "is_synthetic": true,
         "data_source": "synthetic_demo",
-        "note": "Simulated prototype asset. Coordinates are illustrative, not verified real infrastructure."
+        "location_source": "osm_nearest_substation",
+        "note": "Simulated prototype asset sited at real OSM substation way/1535010608."
       },
       "geometry": {
         "type": "Point",
         "coordinates": [
-          73.425,
-          18.746
+          73.41134,
+          18.74778
         ]
       }
     },
@@ -159,7 +208,8 @@
         "status": "active",
         "is_synthetic": true,
         "data_source": "synthetic_demo",
-        "note": "Simulated prototype asset. Coordinates are illustrative, not verified real infrastructure."
+        "location_source": "synthetic_siting",
+        "note": "Simulated prototype asset. Coordinates are illustrative, not surveyed real infrastructure."
       },
       "geometry": {
         "type": "Point",

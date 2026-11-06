@@ -2,8 +2,8 @@
 
 > **"From Weather to Watts, Intelligently."**  
 > Testbed: Lonavala & Khandala, Maharashtra, India  
-> - Regional Context BBox: `[73.25, 18.62, 73.62, 18.90]` (Water & Roads GIS layers)  
-> - Asset Core BBox: `[73.33, 18.68, 73.48, 18.81]` (Energy Assets & Demand Zones)  
+> - Regional Context BBox: `[73.25, 18.62, 73.62, 18.92]` (Water, Roads & Power Lines GIS layers)  
+> - Asset Core BBox: `[73.33, 18.70, 73.61, 18.91]` (Energy Assets, Demand Zones & Wind Ridge)  
 > Module: `digital-twin/` (Member 3)  
 > Stack: Python 3.12, GeoPandas, Shapely, PyProj, MapLibre GL JS, pytest
 
@@ -23,8 +23,9 @@ In strict compliance with Section 15 of `GRIDMATE_ARCHITECTURE.md`, real OpenStr
 |---|---|---|---|
 | **Water Bodies & Reservoirs** (`water_features.geojson`) | **Real** | © OpenStreetMap contributors (ODbL 1.0) via manual overpass-turbo export | Regional water bodies clipped to `context_bbox`: Valvan Lake / Dam, Bhushi Dam Reservoir, Tungarli Lake, Khandala Lake, Tata Dam, Pavana Lake, Shirota Lake, and headwater river/stream networks. Verified high-vertex polygon geometries. `is_synthetic: false`. |
 | **Road Network** (`roads.geojson`) | **Real** | © OpenStreetMap contributors (ODbL 1.0) via manual overpass-turbo export | Regional corridors clipped to `context_bbox`: Mumbai-Pune Expressway, NH48 trunk highway corridors, Khandala connectors, secondary roads. `is_synthetic: false`. |
-| **Energy Assets** (`assets.geojson`) | **Synthetic** | GridMate Prototype Model (`data_source: synthetic_demo`) | Plausibly sited inside `asset_bbox`: solar on sunny elevated plateaus away from roads/water, wind on elevated ridges (Khandala Ridge & Duke's Nose Ridge), hydro on the real shoreline of Valvan Dam reservoir ($39.1\text{ m}$ from water edge, strictly outside water), battery near 110kV substation intertie, central municipal demand hub. All features carry `is_synthetic: true`. |
-| **Demand Zones** (`demand_zones.geojson`) | **Synthetic** | GridMate Prototype Model — illustrative zones (hand-defined polygons), not OSM-derived | Defined using illustrative zones (hand-defined polygons) inside `asset_bbox`, not OSM-derived: Lonavala Town Center & Residential (400 kW), Khandala Tourism Corridor (250 kW), Valvan Industrial Pocket (180 kW), and Bhushi Recreation Sector (70 kW). Total base load: **900.0 kW**. |
+| **Power Transmission Lines** (`power_lines.geojson`) | **Real** | © OpenStreetMap contributors (ODbL 1.0) via manual overpass-turbo export (`raw_power.geojson`) | Regional high-voltage power transmission lines and cables clipped to `context_bbox` (< 1 MB). `is_synthetic: false`. |
+| **Energy Assets** (`assets.geojson`) | **Synthetic** | GridMate Prototype Model (`data_source: synthetic_demo`) | Plausibly sited inside `asset_bbox`: solar on sunny elevated plateaus, wind clustered from 28 real OSM wind turbines on the ridge (`location_source: "osm"`), hydro on the real shoreline of Valvan Dam reservoir ($39.1\text{ m}$ from water edge, strictly outside water), grid intertie sited next to nearest real substation (`location_source: "osm_nearest_substation"`), battery adjacent to substation, central municipal demand hub. All features carry `is_synthetic: true` for capacity/output and explicit `location_source` provenance. |
+| **Demand Zones** (`demand_zones.geojson`) | **Real Geometries / Synthetic Load** | Real OpenStreetMap landuse polygons (`raw_landuse.geojson`, ODbL 1.0) | Multi-vertex irregular polygons derived directly from real OSM residential/commercial landuse relations and ways (`geometry_source: "osm_landuse"`): Lonavala Town Center & Residential (400 kW), Khandala Tourism Corridor (250 kW), Valvan Industrial Pocket (180 kW), and Bhushi Recreation Sector (70 kW). Total base load: **900.0 kW**. |
 | **Energy Flow Topology** (`energy_flow_template.geojson`) | **Synthetic** | GridMate Dynamic Flow Topology | Radial distribution topology from generation sources to the central demand hub and battery node inside `asset_bbox`. |
 | **Scenarios & Dispatch** (`data/scenarios/*.json`) | **Synthetic** | GridMate Dispatch Optimization Simulation | Validated dispatch schedules for 5 canonical weather/load scenarios. |
 
@@ -47,12 +48,15 @@ digital-twin/
 │   ├── raw/                           # Real OpenStreetMap GeoJSON exports (gitignored)
 │   │   ├── raw_water.geojson          # 198 features across regional context
 │   │   ├── raw_roads.geojson          # 477 highway features across regional context
-│   │   ├── raw_landuse.geojson        # 4 zonal polygons for Lonavala-Khandala
+│   │   ├── raw_landuse.geojson        # Real OSM landuse polygons for Lonavala-Khandala
+│   │   ├── raw_wind.geojson           # 28 real OSM wind turbine nodes along the ridge
+│   │   ├── raw_power.geojson          # Real OSM transmission lines & substations
 │   │   └── metadata.json              # Provenance, bboxes, feature counts, export date
-│   ├── assets.geojson                 # 8 clean energy assets (Point features, EPSG:4326)
-│   ├── demand_zones.geojson           # 4 demand zones (total base load 900 kW, EPSG:4326)
+│   ├── assets.geojson                 # 10 clean energy assets (Point features, EPSG:4326)
+│   ├── demand_zones.geojson           # 4 demand zones from real OSM landuse (900 kW base load, EPSG:4326)
 │   ├── water_features.geojson         # 107 clean water polygons & lines (< 2 MB)
 │   ├── roads.geojson                  # 474 filtered road network segments (< 2 MB)
+│   ├── power_lines.geojson            # 67 filtered power transmission lines (< 1 MB)
 │   ├── energy_flow_template.geojson   # Topology lines from supply assets to demand hub
 │   ├── sample_dispatch.json           # 24-hour reference dispatch profile
 │   └── scenarios/                     # 5 canonical scenarios
@@ -87,8 +91,8 @@ digital-twin/
 
 ### 4.1 Dual Bounding Boxes
 All coordinates are strictly **EPSG:4326** in `[longitude, latitude]` format:
-- **`context_bbox`**: `[73.25, 18.62, 73.62, 18.90]` — Encloses regional water catchments (Pavana Lake, Shirota Lake, Tata Dam) and regional road networks.
-- **`asset_bbox`**: `[73.33, 18.68, 73.48, 18.81]` — Strict boundary for synthetic energy assets, demand zones, and local distribution lines.
+- **`context_bbox`**: `[73.25, 18.62, 73.62, 18.92]` — Encloses regional water catchments (Pavana Lake, Shirota Lake, Tata Dam) and regional road networks.
+- **`asset_bbox`**: `[73.33, 18.70, 73.61, 18.91]` — Strict boundary for energy assets, demand zones, and wind ridge cluster.
 
 ### 4.2 Exact Property Names (Architecture Contract)
 ```text
@@ -152,44 +156,188 @@ Power transfer vectors dynamically adapt in real time according to generation, d
 
 ---
 
-## 5. GeoJSON Property Contract for Member 4 (FastAPI + React)
+## 5. Integration for Member 4 (FastAPI + React / TypeScript)
 
-Member 4 can consume the GeoJSON files directly from `digital-twin/data/` or via FastAPI endpoints without client-side Python:
+This section provides the complete integration specification for Member 4 to embed the Lonavala Digital Twin map and dispatch engine into React / TypeScript frontend applications and FastAPI backends without any Python geospatial dependencies.
 
-### 5.1 Assets Layer (`assets.geojson`)
-Each feature in `assets.geojson` contains:
+### 5.1 File List
+Member 4 can import or fetch the following verified deliverables from `digital-twin/`:
+
+| File Path | Description | Integration Use |
+|---|---|---|
+| `data/assets.geojson` | 10 clean energy assets (Point features, EPSG:4326) | Static layer or loaded via `gridmateMap.init()` |
+| `data/demand_zones.geojson` | 4 demand zones from real OSM landuse (EPSG:4326, 900 kW base load) | Static layer or loaded via `gridmateMap.init()` |
+| `data/water_features.geojson` | 107 real OSM water polygons & streams | Static GIS background context |
+| `data/roads.geojson` | 474 filtered highway & road segments | Static GIS transport network context |
+| `data/power_lines.geojson` | 67 real OSM power transmission lines (< 1 MB) | Static GIS power infrastructure context |
+| `map/map_config.json` | Center, zoom, bboxes, basemaps, layer orders | Map configuration & styling parameters |
+| `map/applyDispatch.js` | Pure UMD/CJS dispatch calculation engine | Headless proportional power distribution & flow |
+| `map/gridmateMap.js` | Framework-agnostic ES module map controller | Interactive MapLibre GL JS React integration |
+
+> **Disclaimer**: All energy asset coordinates and demand zone geometries are **synthetic and illustrative** prototype data for research and demonstration (`(Simulated)`), not verified real-world electrical infrastructure. Real features are water bodies, roads, power lines, and landuse polygons from OpenStreetMap.
+
+### 5.2 Bounding Boxes (EPSG:4326 `[min_lon, min_lat, max_lon, max_lat]`)
+- **Regional Context BBox (`context_bbox`)**: `[73.25, 18.62, 73.62, 18.92]`
+  - Covers regional water catchments (Pavana Lake, Shirota Lake, Tata Dam) and highway corridors.
+- **Asset Core BBox (`asset_bbox`)**: `[73.33, 18.70, 73.61, 18.91]`
+  - Strictly encloses all 10 synthetic energy assets, 4 demand zones, and wind ridge cluster.
+
+### 5.3 Property Contract & Exact Fields
+Dispatch data passed from Member 2 (forecasting/optimization) or Member 4 (FastAPI) must strictly provide the following fields:
+
 ```typescript
-interface AssetProperties {
-  id: string;               // e.g. "solar_01", "hydro_01", "battery_01"
+export interface GridMateDispatchRow {
+  timestamp?: string;        // ISO 8601 string, e.g. "2026-11-06T12:00:00"
+  solar_kw: number;          // >= 0.0, solar PV generation
+  wind_kw: number;           // >= 0.0, wind turbine generation
+  hydro_kw: number;          // >= 0.0, hydro powerhouse output
+  battery_kw: number;        // signed float (see battery sign convention)
+  grid_kw: number;           // >= 0.0, power imported from 110kV grid intertie
+  load_kw: number;           // > 0.0, total system demand
+  curtailment_kw: number;    // >= 0.0, curtailed surplus renewable generation
+  battery_soc_kwh?: number;  // 0.0 to 1000.0 kWh (nameplate capacity)
+}
+
+export interface GridMateDispatchContract {
+  location: string;          // "Lonavala, Maharashtra, India"
+  scenario_id: string;       // e.g. "normal", "cloudy", "heavy_monsoon", etc.
+  scenario_name?: string;
+  dispatch: GridMateDispatchRow[];
+  metrics?: Record<string, any>;
+}
+```
+
+Asset properties in `assets.geojson` and updated by `gridmateMap.setDispatch()`:
+```typescript
+export interface GridMateAssetProperties {
+  id: string;                 // e.g. "solar_01", "wind_01", "hydro_01", "battery_01", "grid_01", "demand_hub"
   type: "solar" | "wind" | "hydro" | "battery" | "grid" | "demand";
-  name: string;             // Must contain "(Simulated)", e.g. "Hydro Plant 01 - Valvan Shore Powerhouse (Simulated)"
-  capacity_kw: number;      // Nameplate capacity
-  capacity_kwh?: number;    // Present on battery (1000.0 kWh)
+  name: string;               // e.g. "Solar Park 01 - Khandala Plateau (Simulated)"
+  capacity_kw: number;        // Nameplate capacity kW
+  capacity_kwh?: number;      // 1000.0 kWh on battery asset
   status: "active" | "idle" | "charging" | "discharging" | "not_supplying";
-  is_synthetic: true;
+  forecast_output_kw: number; // Dynamically computed >= 0.0
+  utilization_percent: number;// (forecast_output_kw / capacity_kw) * 100
+  battery_soc_kwh?: number;   // Updated on battery asset
+  is_synthetic: true;         // Mandatory synthetic flag
   data_source: "synthetic_demo";
   note: string;
 }
 ```
 
-### 5.2 Dynamic Client-Side Dispatch Binding (`applyDispatch.js`)
-Member 4's React frontend can import `digital-twin/map/applyDispatch.js` (vanilla ES5/ES6 / UMD, zero runtime dependencies) to update asset statuses and dynamic flow lines when the optimizer dispatches new schedules:
+### 5.4 Battery Sign Convention
+```text
+battery_kw > 0 : Discharging (supplying power into the demand hub) -> status = 'discharging'
+battery_kw < 0 : Charging (absorbing surplus power from generation) -> status = 'charging'
+battery_kw = 0 : Idle (neither charging nor discharging)           -> status = 'idle'
+```
 
-```javascript
-import GridMateDispatch from './applyDispatch.js';
+### 5.5 Canonical Scenario IDs
+The twin supports the following standard scenario identifiers:
+1. `normal`: Normal Day (100% RE baseline, balanced solar, wind, hydro, battery)
+2. `cloudy`: Cloudy Day (diminished solar PV, battery discharge support, grid intertie import)
+3. `heavy_monsoon`: Heavy Monsoon (maximum hydro 400 kW, low solar 20 kW, battery charging -60 kW, grid import 330 kW)
+4. `high_wind`: High Wind (peak ridge wind generation, surplus charging battery)
+5. `peak_demand`: Peak Demand (evening 1.25 MW hub load, full asset dispatch)
 
-// 1. Parse dispatch row from optimizer scenario
-const row = GridMateDispatch.parseDispatchRow(scenarioData, 0);
+### 5.6 React + TypeScript Example
+Below is an example React component showing how to initialize `gridmateMap.js`, push live or simulated dispatch updates, and clean up on unmount:
 
-// 2. Proportionally allocate power to assets
-const updatedAssets = GridMateDispatch.applyDispatch(rawAssetsGeoJSON, row, "normal");
+```tsx
+import React, { useEffect, useRef } from 'react';
+import maplibregl from 'maplibre-gl';
+import 'maplibre-gl/dist/maplibre-gl.css';
+import { init, GridMateMapController, GridMateDispatchRow, GridMateDispatchContract } from './digital-twin/map/gridmateMap.js';
 
-// 3. Generate dynamic line-weighted flow lines into demand hub
-const dynamicFlows = GridMateDispatch.buildEnergyFlow(row, rawAssetsGeoJSON);
+interface DigitalTwinMapProps {
+  dispatchData?: GridMateDispatchContract | GridMateDispatchRow;
+  selectedScenario?: string;
+  basemap?: 'streets' | 'satellite' | 'plain';
+  terrain3D?: boolean;
+  onAssetClick?: (feature: any) => void;
+}
 
-// 4. Update MapLibre / Leaflet data sources
-map.getSource('assets-src').setData(updatedAssets);
-map.getSource('flow-src').setData(dynamicFlows);
+export const GridMateDigitalTwin: React.FC<DigitalTwinMapProps> = ({
+  dispatchData,
+  selectedScenario = 'normal',
+  basemap = 'streets',
+  terrain3D = false,
+  onAssetClick,
+}) => {
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const controllerRef = useRef<GridMateMapController | null>(null);
+
+  // 1. Initialize map on mount, destroy on unmount
+  useEffect(() => {
+    let isCancelled = false;
+
+    if (mapContainerRef.current) {
+      init(mapContainerRef.current, {
+        basePath: '/digital-twin/', // Path where data/ and map_config.json reside
+        maplibregl: maplibregl,     // Injected MapLibre GL JS instance
+        basemap: basemap,
+        terrain: terrain3D,
+        onAssetClick: (feat, coords) => {
+          if (onAssetClick) onAssetClick(feat);
+        },
+        onReady: (controller) => {
+          if (!isCancelled) {
+            controllerRef.current = controller;
+            if (dispatchData) {
+              controller.setDispatch(dispatchData, 0);
+            } else {
+              controller.setScenario(selectedScenario);
+            }
+          }
+        }
+      }).catch((err) => console.error("GridMate digital twin init error:", err));
+    }
+
+    return () => {
+      isCancelled = true;
+      if (controllerRef.current) {
+        controllerRef.current.destroy();
+        controllerRef.current = null;
+      }
+    };
+  }, []);
+
+  // 2. React to dispatch state changes (supports both contract form and flat single-object form)
+  useEffect(() => {
+    if (controllerRef.current && dispatchData) {
+      controllerRef.current.setDispatch(dispatchData, 0);
+    }
+  }, [dispatchData]);
+
+  // 3. React to scenario selector changes
+  useEffect(() => {
+    if (controllerRef.current && selectedScenario && !dispatchData) {
+      controllerRef.current.setScenario(selectedScenario);
+    }
+  }, [selectedScenario]);
+
+  // 4. React to basemap changes
+  useEffect(() => {
+    if (controllerRef.current && basemap) {
+      controllerRef.current.setBasemap(basemap);
+    }
+  }, [basemap]);
+
+  // 5. React to 3D terrain toggle
+  useEffect(() => {
+    if (controllerRef.current && terrain3D !== undefined) {
+      controllerRef.current.setTerrain(terrain3D);
+    }
+  }, [terrain3D]);
+
+  return (
+    <div style={{ position: 'relative', width: '100%', height: '100%', minHeight: '500px' }}>
+      <div ref={mapContainerRef} style={{ width: '100%', height: '100%' }} />
+    </div>
+  );
+};
+
+export default GridMateDigitalTwin;
 ```
 
 ---

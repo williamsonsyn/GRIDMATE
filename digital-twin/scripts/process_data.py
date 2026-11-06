@@ -1,9 +1,10 @@
 """
 process_data.py
 Cleans, simplifies, reprojects, and filters raw OpenStreetMap GIS data for Lonavala Digital Twin:
-- Clips water and roads to context_bbox [73.25, 18.62, 73.62, 18.90]
+- Clips water, roads, and power lines to context_bbox [73.25, 18.62, 73.62, 18.92]
 - Produces digital-twin/data/water_features.geojson
 - Produces digital-twin/data/roads.geojson
+- Produces digital-twin/data/power_lines.geojson
 - Produces digital-twin/data/raw/metadata.json
 
 Source: Real OpenStreetMap exports (overpass-turbo, GeoJSON).
@@ -27,15 +28,14 @@ RAW_DIR = BASE_DIR / "data" / "raw"
 DATA_DIR = BASE_DIR / "data"
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 
-# Context bounding box for regional GIS layers (water, roads)
-CONTEXT_BBOX = [73.25, 18.62, 73.62, 18.90]  # [min_lon, min_lat, max_lon, max_lat]
-# Asset bounding box for synthetic assets and demand zones
-ASSET_BBOX = [73.33, 18.68, 73.48, 18.81]
+# Context bounding box for regional GIS layers (water, roads, power lines)
+CONTEXT_BBOX = [73.25, 18.62, 73.62, 18.92]  # [min_lon, min_lat, max_lon, max_lat]
+# Asset bounding box covering energy assets, demand zones, and wind ridge
+ASSET_BBOX = [73.33, 18.70, 73.61, 18.91]
 
 
 def process_water():
     """Processes water features: keep polygons (drop tiny ponds < 2000 m2, keep named waterbodies
-
     including Valvan, Bhushi, Tungarli, Khandala, Pavana, Tata, Shirota) and major rivers/canals/streams
     as lines (>= 500m or named), clip to context_bbox, reproject to EPSG:4326, fix invalid geometries,
     and simplify lightly (~0.0001 deg).
@@ -118,7 +118,6 @@ def process_water():
 
 def process_roads():
     """Processes road features: keep motorway, trunk, primary, and secondary (and links),
-
     clip to context_bbox, reproject to EPSG:4326, fix invalid geometries, simplify lightly (~0.0001 deg).
     """
     raw_path = RAW_DIR / "raw_roads.geojson"
@@ -174,15 +173,72 @@ def process_roads():
     return clean_gdf
 
 
-def write_metadata(water_gdf, roads_gdf):
+def process_power_lines():
+    """Processes real power transmission lines from raw_power.geojson:
+    Clips to context_bbox, simplifies lightly, and outputs digital-twin/data/power_lines.geojson (< 1 MB).
+    """
+    raw_path = RAW_DIR / "raw_power.geojson"
+    if not raw_path.exists():
+        logger.warning(f"Raw power file not found at {raw_path}")
+        return gpd.GeoDataFrame([], crs="EPSG:4326")
+
+    gdf = gpd.read_file(raw_path)
+    logger.info(f"Loaded {len(gdf)} raw power features from {raw_path.name}.")
+
+    if gdf.crs != "EPSG:4326":
+        gdf = gdf.to_crs("EPSG:4326")
+
+    # Filter to power lines/cables
+    lines_gdf = gdf[
+        gdf.geometry.geom_type.isin(["LineString", "MultiLineString"])
+        & gdf["power"].isin(["line", "minor_line", "cable"])
+    ].copy()
+
+    # Clip to context bounding box
+    clipped = gpd.clip(lines_gdf, CONTEXT_BBOX)
+    clipped = clipped[~clipped.geometry.is_empty & clipped.geometry.notna()].copy()
+    clipped["geometry"] = clipped["geometry"].apply(lambda g: make_valid(g) if not g.is_valid else g)
+    clipped["geometry"] = clipped["geometry"].simplify(tolerance=0.0001, preserve_topology=True)
+
+    records = []
+    for idx, row in clipped.reset_index(drop=True).iterrows():
+        raw_name = row.get("name")
+        name = str(raw_name).strip() if (raw_name and str(raw_name) != "nan") else f"Transmission Line {idx+1}"
+        voltage = str(row.get("voltage") or "110000")
+        cables = str(row.get("cables") or "3")
+
+        records.append({
+            "id": f"power_line_{idx+1:03d}",
+            "name": name,
+            "type": "transmission_line",
+            "voltage": voltage,
+            "cables": cables,
+            "source": "OpenStreetMap",
+            "is_synthetic": False,
+            "geometry": row.geometry
+        })
+
+    clean_gdf = gpd.GeoDataFrame(records, crs="EPSG:4326")
+    out_path = DATA_DIR / "power_lines.geojson"
+    clean_gdf.to_file(out_path, driver="GeoJSON")
+    file_size_kb = out_path.stat().st_size / 1024
+    logger.info(f"Processed power lines: {len(clean_gdf)} items -> {out_path} ({file_size_kb:.1f} KB)")
+    return clean_gdf
+
+
+def write_metadata(water_gdf, roads_gdf, power_gdf):
     """Writes data/raw/metadata.json documenting sources, counts, and bboxes."""
     raw_water_path = RAW_DIR / "raw_water.geojson"
     raw_roads_path = RAW_DIR / "raw_roads.geojson"
     raw_landuse_path = RAW_DIR / "raw_landuse.geojson"
+    raw_wind_path = RAW_DIR / "raw_wind.geojson"
+    raw_power_path = RAW_DIR / "raw_power.geojson"
 
     raw_water_count = len(gpd.read_file(raw_water_path)) if raw_water_path.exists() else 0
     raw_roads_count = len(gpd.read_file(raw_roads_path)) if raw_roads_path.exists() else 0
     raw_landuse_count = len(gpd.read_file(raw_landuse_path)) if raw_landuse_path.exists() else 0
+    raw_wind_count = len(gpd.read_file(raw_wind_path)) if raw_wind_path.exists() else 0
+    raw_power_count = len(gpd.read_file(raw_power_path)) if raw_power_path.exists() else 0
 
     metadata = {
         "testbed": "Lonavala & Khandala Regional Context, Maharashtra, India",
@@ -205,11 +261,14 @@ def write_metadata(water_gdf, roads_gdf):
         "raw_counts": {
             "raw_water": raw_water_count,
             "raw_roads": raw_roads_count,
-            "raw_landuse": raw_landuse_count
+            "raw_landuse": raw_landuse_count,
+            "raw_wind": raw_wind_count,
+            "raw_power": raw_power_count
         },
         "processed_counts": {
             "water_features": len(water_gdf),
-            "roads": len(roads_gdf)
+            "roads": len(roads_gdf),
+            "power_lines": len(power_gdf)
         }
     }
 
@@ -223,7 +282,8 @@ def main():
     logger.info("=== Process & Clean Real OSM GIS Data for Context BBox ===")
     water_gdf = process_water()
     roads_gdf = process_roads()
-    write_metadata(water_gdf, roads_gdf)
+    power_gdf = process_power_lines()
+    write_metadata(water_gdf, roads_gdf, power_gdf)
     logger.info("process_data completed successfully.")
 
 
