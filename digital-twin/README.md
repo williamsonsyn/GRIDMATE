@@ -24,7 +24,7 @@ In strict compliance with Section 15 of `GRIDMATE_ARCHITECTURE.md`, real OpenStr
 | **Water Bodies & Reservoirs** (`water_features.geojson`) | **Real** | © OpenStreetMap contributors (ODbL 1.0) via manual overpass-turbo export | Regional water bodies clipped to `context_bbox`: Valvan Lake / Dam, Bhushi Dam Reservoir, Tungarli Lake, Khandala Lake, Tata Dam, Pavana Lake, Shirota Lake, and headwater river/stream networks. Verified high-vertex polygon geometries. `is_synthetic: false`. |
 | **Road Network** (`roads.geojson`) | **Real** | © OpenStreetMap contributors (ODbL 1.0) via manual overpass-turbo export | Regional corridors clipped to `context_bbox`: Mumbai-Pune Expressway, NH48 trunk highway corridors, Khandala connectors, secondary roads. `is_synthetic: false`. |
 | **Energy Assets** (`assets.geojson`) | **Synthetic** | GridMate Prototype Model (`data_source: synthetic_demo`) | Plausibly sited inside `asset_bbox`: solar on sunny elevated plateaus away from roads/water, wind on elevated ridges (Khandala Ridge & Duke's Nose Ridge), hydro on the real shoreline of Valvan Dam reservoir ($39.1\text{ m}$ from water edge, strictly outside water), battery near 110kV substation intertie, central municipal demand hub. All features carry `is_synthetic: true`. |
-| **Demand Zones** (`demand_zones.geojson`) | **Synthetic** | GridMate Prototype Model shaped by real OSM landuse | Shaped using real landuse boundaries inside `asset_bbox`: Lonavala Town Center & Residential (400 kW), Khandala Tourism Corridor (250 kW), Valvan Industrial Pocket (180 kW), and Bhushi Recreation Sector (70 kW). Total base load: **900.0 kW**. |
+| **Demand Zones** (`demand_zones.geojson`) | **Synthetic** | GridMate Prototype Model — illustrative zones (hand-defined polygons), not OSM-derived | Defined using illustrative zones (hand-defined polygons) inside `asset_bbox`, not OSM-derived: Lonavala Town Center & Residential (400 kW), Khandala Tourism Corridor (250 kW), Valvan Industrial Pocket (180 kW), and Bhushi Recreation Sector (70 kW). Total base load: **900.0 kW**. |
 | **Energy Flow Topology** (`energy_flow_template.geojson`) | **Synthetic** | GridMate Dynamic Flow Topology | Radial distribution topology from generation sources to the central demand hub and battery node inside `asset_bbox`. |
 | **Scenarios & Dispatch** (`data/scenarios/*.json`) | **Synthetic** | GridMate Dispatch Optimization Simulation | Validated dispatch schedules for 5 canonical weather/load scenarios. |
 
@@ -110,6 +110,45 @@ battery_kw = 0 : Idle (neither charging nor discharging)
 ```
 Physical energy conservation equation enforced across all scenarios:
 $$(P_{\text{solar}} + P_{\text{wind}} + P_{\text{hydro}} + P_{\text{battery}} + P_{\text{grid}}) = (P_{\text{load}} + P_{\text{curtailment}}) \pm 0.01\text{ kW}$$
+
+### 4.4 Energy Flow Direction Rules
+Power transfer vectors dynamically adapt in real time according to generation, demand, and storage state:
+1. **Renewable Generation (Solar, Wind, Hydro)**:
+   - Always flow from the generation facility toward the central demand hub (`to_demand`).
+   - Line width and particle velocity scale directly with `flow_kw`.
+2. **Battery Energy Storage System**:
+   - **Discharging (`battery_kw > 0`)**: Direction is `to_demand` (from battery to the demand hub).
+   - **Charging (`battery_kw < 0`)**: Direction reverses to `to_battery` (from supply/demand hub into the battery).
+   - **Idle (`battery_kw == 0`)**: Static thin grey line (width 1.2 px, color `#475569`, 0 kW), no animation particles.
+3. **Grid Intertie**:
+   - **Importing (`grid_kw > 0`)**: Direction is `to_demand` (from intertie substation to demand hub).
+   - **No Import (`grid_kw == 0`)**: Status is `not_supplying`, static thin grey line (0 kW), no animation particles.
+4. **Animation Engine**:
+   - Built exclusively using browser-native `requestAnimationFrame` (zero third-party animation libraries).
+   - Particle flow automatically pauses when the browser tab is hidden (`document.hidden`) and resumes on visibility change.
+
+### 4.5 24-Hour Time Slider & Playback Behaviour
+- **Bottom-Center Control Bar**: Features a Play/Pause toggle button, a 24-step range slider (`00:00` to `23:00`), and a prominent timestamp readout.
+- **Playback Loop**: Clicking Play advances the simulation one step every ~800 ms and loops continuously from `23:00` back to `00:00`.
+- **Scrubbing & Interaction**: Scrubbing the slider instantly halts playback and synchronizes the targeted hour.
+- **Unified Updates**: Advancing the slider updates all twin layers simultaneously:
+  - Asset forecast output kW, utilization percentage, halo rings, and status badges.
+  - Energy flow vector directions, line thicknesses, and animated particle speeds.
+  - Sidebar energy dispatch metrics (Renewable Penetration %, Grid Dependency %, Battery Mode, Battery SOC, Gen vs Load balance).
+  - Demand zone current `load_kw` and 4-tier color shading.
+  - Collapsible side-panel asset directory and active map popup readouts.
+- **Single-Point Scenarios**: Selecting a 1-hour snapshot scenario automatically disables the slider and play button while displaying that snapshot's exact timestamp.
+
+### 4.6 Demand Zones Proportional Splitting & 4-Step Color Scale
+- Current total `load_kw` is distributed across the 4 zones strictly in proportion to their `base_load_kw` (sum = 900 kW):
+  $$P_{\text{zone}} = P_{\text{load, total}} \times \left(\frac{P_{\text{base, zone}}}{900\text{ kW}}\right)$$
+- Color classification dynamically updates across a 4-step scale:
+  - **Low** (`< 120 kW`): `#38bdf8` (Sky blue)
+  - **Moderate** (`120 - 250 kW`): `#818cf8` (Indigo)
+  - **High** (`250 - 400 kW`): `#f59e0b` (Amber)
+  - **Peak** (`≥ 400 kW`): `#ef4444` (Crimson)
+- Demand zones are prominently labeled as "illustrative zones (hand-defined polygons)", not OSM-derived, in popups and tooltips.
+
 
 ---
 
@@ -200,7 +239,7 @@ To regenerate all processed GIS layers, assets, demand zones, flow templates, an
 # Step 1: Process and clean real OSM data (clip to context_bbox, simplify, validate)
 python scripts/process_data.py
 
-# Step 2: Generate assets, demand zones (from raw landuse), and energy flow template
+# Step 2: Generate assets, demand zones (illustrative hand-defined polygons), and energy flow template
 python scripts/generate_assets.py
 
 # Step 3: Generate validated 5-scenario dispatch files and 24h sample dispatch

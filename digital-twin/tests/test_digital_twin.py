@@ -23,7 +23,7 @@ import geopandas as gpd
 from shapely.geometry import Point, shape
 from pyproj import Transformer
 
-from src.map_utils import load_dispatch, apply_dispatch, build_energy_flow
+from src.map_utils import load_dispatch, apply_dispatch, build_energy_flow, distribute_demand_load
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = BASE_DIR / "data"
@@ -430,3 +430,343 @@ def test_build_energy_flow():
         assert "flow_kw" in p and p["flow_kw"] >= 0.0
         assert "status" in p
         assert p["direction"] in ["to_demand", "to_battery"]
+
+
+# ==========================================
+# 7. 24-Hour Sample Dispatch Parity & Constraints
+# ==========================================
+
+def test_sample_dispatch_24h_python_js_parity():
+    """Verifies that applyDispatch gives identical output for every timestamp index
+
+    (0..23) in sample_dispatch.json between Python and Node.js.
+    Also verifies no negative outputs for any asset at any hour.
+    """
+    assets_file = DATA_DIR / "assets.geojson"
+    sample_file = DATA_DIR / "sample_dispatch.json"
+
+    with open(sample_file, "r", encoding="utf-8") as f:
+        sample_data = json.load(f)
+
+    dispatch_rows = sample_data["dispatch"]
+    assert len(dispatch_rows) == 24, f"Expected 24 hourly dispatch rows, got {len(dispatch_rows)}"
+
+    # Run Node to compute all 24 hours at once for high-performance parity checking
+    js_script = """
+    const fs = require('fs');
+    const GridMateDispatch = require('./map/applyDispatch.js');
+    const assets = JSON.parse(fs.readFileSync('./data/assets.geojson', 'utf-8'));
+    const sample = JSON.parse(fs.readFileSync('./data/sample_dispatch.json', 'utf-8'));
+
+    const allApplied = sample.dispatch.map((row, idx) => {
+        const parsed = GridMateDispatch.parseDispatchRow(sample, idx);
+        return GridMateDispatch.applyDispatch(assets, parsed, sample.scenario_id);
+    });
+    console.log(JSON.stringify(allApplied));
+    """
+    result = subprocess.run(
+        ["node", "-e", js_script],
+        cwd=BASE_DIR,
+        capture_output=True,
+        text=True,
+        check=True
+    )
+    js_all_applied = json.loads(result.stdout)
+    assert len(js_all_applied) == 24
+
+    for idx, row in enumerate(dispatch_rows):
+        ts = row.get("timestamp", f"hour_{idx}")
+        py_row = load_dispatch(sample_file, idx)
+        py_applied = apply_dispatch(assets_file, py_row, scenario_id=sample_data.get("scenario_id"))
+        js_applied = js_all_applied[idx]
+
+        assert len(py_applied["features"]) == len(js_applied["features"]), (
+            f"Feature count mismatch at hour {idx} ({ts}): Python {len(py_applied['features'])} vs JS {len(js_applied['features'])}"
+        )
+
+        for f_py, f_js in zip(py_applied["features"], js_applied["features"]):
+            p_py = f_py["properties"]
+            p_js = f_js["properties"]
+            aid = p_py["id"]
+
+            assert p_py["id"] == p_js["id"], f"Asset ID mismatch at hour {idx} ({ts}): {aid} vs {p_js['id']}"
+
+            # Check no negative outputs
+            assert p_py["forecast_output_kw"] >= 0.0, (
+                f"Negative forecast_output_kw={p_py['forecast_output_kw']} in Python for asset '{aid}' at timestamp '{ts}' (hour {idx})"
+            )
+            assert p_js["forecast_output_kw"] >= 0.0, (
+                f"Negative forecast_output_kw={p_js['forecast_output_kw']} in JS for asset '{aid}' at timestamp '{ts}' (hour {idx})"
+            )
+
+            # Check status match
+            assert p_py["status"] == p_js["status"], (
+                f"Status mismatch for asset '{aid}' at timestamp '{ts}' (hour {idx}): Python '{p_py['status']}' vs JS '{p_js['status']}'"
+            )
+
+            # Check output match
+            assert abs(p_py["forecast_output_kw"] - p_js["forecast_output_kw"]) < 0.05, (
+                f"Output mismatch for asset '{aid}' at timestamp '{ts}' (hour {idx}): Python {p_py['forecast_output_kw']} vs JS {p_js['forecast_output_kw']}"
+            )
+
+            # Check utilization match
+            assert abs(p_py["utilization_percent"] - p_js["utilization_percent"]) < 0.2, (
+                f"Utilization mismatch for asset '{aid}' at timestamp '{ts}' (hour {idx}): Python {p_py['utilization_percent']} vs JS {p_js['utilization_percent']}"
+            )
+
+
+def test_demand_zones_load_conservation_24h():
+    """Verifies that zone loads sum to load_kw at each of the 24 timestamps
+
+    in sample_dispatch.json, with proportional allocation and no negative values.
+    Also verifies Python vs JS parity for demand zone load distribution.
+    """
+    zones_file = DATA_DIR / "demand_zones.geojson"
+    sample_file = DATA_DIR / "sample_dispatch.json"
+
+    with open(sample_file, "r", encoding="utf-8") as f:
+        sample_data = json.load(f)
+
+    with open(zones_file, "r", encoding="utf-8") as f:
+        raw_zones = json.load(f)
+
+    # Node script for JS distribution parity
+    js_script = """
+    const fs = require('fs');
+    const GridMateDispatch = require('./map/applyDispatch.js');
+    const zones = JSON.parse(fs.readFileSync('./data/demand_zones.geojson', 'utf-8'));
+    const sample = JSON.parse(fs.readFileSync('./data/sample_dispatch.json', 'utf-8'));
+
+    const allDistributed = sample.dispatch.map((row) => {
+        return GridMateDispatch.distributeDemandLoad(zones, row.load_kw);
+    });
+    console.log(JSON.stringify(allDistributed));
+    """
+    result = subprocess.run(
+        ["node", "-e", js_script],
+        cwd=BASE_DIR,
+        capture_output=True,
+        text=True,
+        check=True
+    )
+    js_all_zones = json.loads(result.stdout)
+
+    for idx, row in enumerate(sample_data["dispatch"]):
+        ts = row.get("timestamp", f"hour_{idx}")
+        total_load = float(row["load_kw"])
+        assert total_load > 0, f"Non-positive load_kw at hour {idx} ({ts})"
+
+        py_distributed = distribute_demand_load(zones_file, total_load)
+        js_distributed = js_all_zones[idx]
+
+        # 1. Zone loads must sum to total load_kw at each timestamp
+        zone_sum_py = sum(float(f["properties"]["load_kw"]) for f in py_distributed["features"])
+        assert zone_sum_py == pytest.approx(total_load, abs=0.1), (
+            f"Python demand zone sum ({zone_sum_py:.2f} kW) != dispatch load_kw ({total_load} kW) at timestamp '{ts}' (hour {idx})"
+        )
+
+        zone_sum_js = sum(float(f["properties"]["load_kw"]) for f in js_distributed["features"])
+        assert zone_sum_js == pytest.approx(total_load, abs=0.1), (
+            f"JS demand zone sum ({zone_sum_js:.2f} kW) != dispatch load_kw ({total_load} kW) at timestamp '{ts}' (hour {idx})"
+        )
+
+        # 2. Check each zone: no negative load, 'illustrative zone' label, and Python-JS parity
+        for f_py, f_js in zip(py_distributed["features"], js_distributed["features"]):
+            p_py = f_py["properties"]
+            p_js = f_js["properties"]
+            zid = p_py.get("id", "unknown_zone")
+
+            assert p_py["load_kw"] >= 0.0, (
+                f"Negative zone load in Python for zone '{zid}' at timestamp '{ts}' (hour {idx}): {p_py['load_kw']} kW"
+            )
+            assert p_js["load_kw"] >= 0.0, (
+                f"Negative zone load in JS for zone '{zid}' at timestamp '{ts}' (hour {idx}): {p_js['load_kw']} kW"
+            )
+
+            assert p_py["label"] == "illustrative zone", (
+                f"Zone '{zid}' missing 'illustrative zone' label in Python at timestamp '{ts}'"
+            )
+            assert p_js["label"] == "illustrative zone", (
+                f"Zone '{zid}' missing 'illustrative zone' label in JS at timestamp '{ts}'"
+            )
+
+            assert abs(p_py["load_kw"] - p_js["load_kw"]) < 0.05, (
+                f"Zone load mismatch for zone '{zid}' at timestamp '{ts}' (hour {idx}): Python {p_py['load_kw']} vs JS {p_js['load_kw']}"
+            )
+            assert abs(p_py["load_share_pct"] - p_js["load_share_pct"]) < 0.2, (
+                f"Zone share % mismatch for zone '{zid}' at timestamp '{ts}' (hour {idx}): Python {p_py['load_share_pct']} vs JS {p_js['load_share_pct']}"
+            )
+
+
+# ==========================================
+# 7. Member 3 Fix Verifications
+# ==========================================
+
+def test_assets_directory_count_matches_geojson():
+    """Verifies that assets directory count matches the number of features in assets.geojson (8)."""
+    assets_file = DATA_DIR / "assets.geojson"
+    with open(assets_file, "r", encoding="utf-8") as f:
+        assets_data = json.load(f)
+
+    feature_count = len(assets_data["features"])
+    assert feature_count == 8, f"Expected 8 features in assets.geojson, found {feature_count}"
+
+    # Verify map/index.html populates directory immediately on asset load and hooks click events
+    index_html = (BASE_DIR / "map" / "index.html").read_text(encoding="utf-8")
+    assert "applyTimeStep(0)" in index_html, "index.html must apply timestep 0 immediately on startup"
+    assert "renderAssetsList" in index_html, "index.html must define renderAssetsList"
+    assert "countElem.innerText = String(features.length)" in index_html, "renderAssetsList must set asset count to feature count"
+    assert "flyToAssetAndOpenPopup" in index_html, "index.html must invoke flyToAssetAndOpenPopup on item click"
+
+
+def test_timestep_zero_panel_and_directory_parity():
+    """Verifies that the metrics panel text and directory output for timestep 0 (00:00:00)
+    match applyDispatch() output for the same row, with assertion messages naming asset id and hour.
+    """
+    js_script = """
+    const fs = require('fs');
+    const GridMateDispatch = require('./map/applyDispatch.js');
+
+    const assets = JSON.parse(fs.readFileSync('./data/assets.geojson', 'utf-8'));
+    const sample = JSON.parse(fs.readFileSync('./data/sample_dispatch.json', 'utf-8'));
+
+    const row = GridMateDispatch.parseDispatchRow(sample, 0);
+    const applied = GridMateDispatch.applyDispatch(assets, row, sample.scenario_id);
+
+    console.log(JSON.stringify({ row, applied }));
+    """
+    result = subprocess.run(
+        ["node", "-e", js_script],
+        cwd=BASE_DIR,
+        capture_output=True,
+        text=True,
+        check=True
+    )
+    data = json.loads(result.stdout)
+    row = data["row"]
+    applied = data["applied"]
+
+    # 1. Assets Directory / applyDispatch parity checks for hour 0
+    for f in applied["features"]:
+        p = f["properties"]
+        aid = p["id"]
+        atype = p["type"]
+        out_kw = p["forecast_output_kw"]
+        status = p["status"]
+
+        if atype == "solar":
+            assert out_kw == 0.0, f"Hour 0: asset {aid} output must be 0 kW at night, got {out_kw} kW"
+            assert status == "idle", f"Hour 0: asset {aid} status must be 'idle' at night, got '{status}'"
+        elif atype == "battery":
+            assert out_kw == row["battery_kw"], f"Hour 0: asset {aid} output {out_kw} kW != dispatch battery_kw {row['battery_kw']} kW"
+            assert status == "discharging", f"Hour 0: asset {aid} status must be 'discharging', got '{status}'"
+            assert p["battery_soc_kwh"] == row["battery_soc_kwh"], f"Hour 0: asset {aid} SOC {p['battery_soc_kwh']} != dispatch SOC {row['battery_soc_kwh']}"
+        elif atype == "grid":
+            assert out_kw == row["grid_kw"], f"Hour 0: asset {aid} output {out_kw} kW != dispatch grid_kw {row['grid_kw']} kW"
+            assert status == "not_supplying", f"Hour 0: asset {aid} status must be 'not_supplying' when grid_kw=0, got '{status}'"
+        elif atype == "wind":
+            assert out_kw > 0.0, f"Hour 0: asset {aid} output must be positive, got {out_kw} kW"
+            assert status == "active", f"Hour 0: asset {aid} status must be 'active', got '{status}'"
+
+    # 2. Panel text metrics derived from current dispatch row for hour 0
+    load_kw = float(row["load_kw"])
+    solar_kw = float(row["solar_kw"])
+    wind_kw = float(row["wind_kw"])
+    hydro_kw = float(row["hydro_kw"])
+    grid_kw = float(row["grid_kw"])
+    bat_kw = float(row["battery_kw"])
+    bat_discharge = bat_kw if bat_kw > 0 else 0.0
+
+    gen_total = solar_kw + wind_kw + hydro_kw + grid_kw + bat_discharge
+    re_gen = solar_kw + wind_kw + hydro_kw + bat_discharge
+    re_pct = (re_gen / load_kw) * 100.0 if load_kw > 0 else 100.0
+    grid_pct = (grid_kw / load_kw) * 100.0 if load_kw > 0 else 0.0
+
+    bal_text = f"{gen_total:.0f} kW gen / {load_kw:.0f} kW load"
+    bat_text = f"Discharging ({bat_kw:.0f} kW)" if bat_kw > 0 else f"Idle (0 kW)"
+    soc_text = f"{float(row['battery_soc_kwh']):.0f} kWh"
+    re_text = f"{re_pct:.1f}%"
+    grid_text = f"{grid_pct:.1f}%"
+
+    assert bal_text == "500 kW gen / 500 kW load", f"Hour 0: balance text expected '500 kW gen / 500 kW load', got '{bal_text}'"
+    assert bat_text == "Discharging (90 kW)", f"Hour 0: battery text expected 'Discharging (90 kW)', got '{bat_text}'"
+    assert soc_text == "360 kWh", f"Hour 0: SOC text expected '360 kWh', got '{soc_text}'"
+    assert re_text == "100.0%", f"Hour 0: renewable text expected '100.0%', got '{re_text}'"
+    assert grid_text == "0.0%", f"Hour 0: grid text expected '0.0%', got '{grid_text}'"
+
+
+def test_dispatch_per_type_capacity_limits():
+    """Verifies per-type output never exceeds total nameplate capacity in assets.geojson."""
+    assets_file = DATA_DIR / "assets.geojson"
+    with open(assets_file, "r", encoding="utf-8") as f:
+        assets_data = json.load(f)
+
+    type_capacities = {}
+    for f in assets_data["features"]:
+        p = f["properties"]
+        t = p["type"]
+        type_capacities[t] = type_capacities.get(t, 0.0) + float(p["capacity_kw"])
+
+    # 1. Check sample_dispatch.json 24 hours
+    sample_file = DATA_DIR / "sample_dispatch.json"
+    with open(sample_file, "r", encoding="utf-8") as f:
+        sample_data = json.load(f)
+
+    for h, row in enumerate(sample_data["dispatch"]):
+        assert row["solar_kw"] <= type_capacities["solar"], (
+            f"Hour {h}: asset type solar output {row['solar_kw']} kW exceeds total capacity {type_capacities['solar']} kW"
+        )
+        assert row["wind_kw"] <= type_capacities["wind"], (
+            f"Hour {h}: asset type wind output {row['wind_kw']} kW exceeds total capacity {type_capacities['wind']} kW"
+        )
+        assert row["hydro_kw"] <= type_capacities["hydro"], (
+            f"Hour {h}: asset type hydro output {row['hydro_kw']} kW exceeds total capacity {type_capacities['hydro']} kW"
+        )
+        assert abs(row["battery_kw"]) <= type_capacities["battery"], (
+            f"Hour {h}: asset type battery output {abs(row['battery_kw'])} kW exceeds total capacity {type_capacities['battery']} kW"
+        )
+
+    # 2. Check all 5 scenario files
+    for sc_id in REQUIRED_SCENARIOS:
+        sc_file = SCENARIO_DIR / f"{sc_id}.json"
+        with open(sc_file, "r", encoding="utf-8") as f:
+            sc_data = json.load(f)
+        for h, row in enumerate(sc_data["dispatch"]):
+            ts_hour = row.get("timestamp", str(h))
+            assert row["solar_kw"] <= type_capacities["solar"], (
+                f"Hour {ts_hour}: asset type solar output {row['solar_kw']} kW exceeds total capacity {type_capacities['solar']} kW in {sc_id}"
+            )
+            assert row["wind_kw"] <= type_capacities["wind"], (
+                f"Hour {ts_hour}: asset type wind output {row['wind_kw']} kW exceeds total capacity {type_capacities['wind']} kW in {sc_id}"
+            )
+            assert row["hydro_kw"] <= type_capacities["hydro"], (
+                f"Hour {ts_hour}: asset type hydro output {row['hydro_kw']} kW exceeds total capacity {type_capacities['hydro']} kW in {sc_id}"
+            )
+            assert abs(row["battery_kw"]) <= type_capacities["battery"], (
+                f"Hour {ts_hour}: asset type battery output {abs(row['battery_kw'])} kW exceeds total capacity {type_capacities['battery']} kW in {sc_id}"
+            )
+
+
+def test_night_time_solar_zero_rule():
+    """Verifies that solar_kw is strictly 0 from 19:00 to 05:00 in sample_dispatch and scenarios."""
+    sample_file = DATA_DIR / "sample_dispatch.json"
+    with open(sample_file, "r", encoding="utf-8") as f:
+        sample_data = json.load(f)
+
+    night_hours = {19, 20, 21, 22, 23, 0, 1, 2, 3, 4, 5}
+    for h, row in enumerate(sample_data["dispatch"]):
+        if h in night_hours:
+            assert row["solar_kw"] == 0.0, (
+                f"Hour {h:02d}:00: asset type solar must be 0 at night, got {row['solar_kw']} kW"
+            )
+
+    # Also verify scenario files with night timestamps (e.g. peak_demand at 19:00:00)
+    peak_file = SCENARIO_DIR / "peak_demand.json"
+    with open(peak_file, "r", encoding="utf-8") as f:
+        peak_data = json.load(f)
+    for row in peak_data["dispatch"]:
+        assert row["solar_kw"] == 0.0, (
+            f"Hour 19:00: asset type solar must be 0 at night, got {row['solar_kw']} kW in peak_demand"
+        )
+
+

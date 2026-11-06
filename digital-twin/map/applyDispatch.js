@@ -192,10 +192,38 @@
     };
   }
 
+  function distributeDemandLoad(demandZonesGeoJSON, totalLoadKw) {
+    var zonesFc = JSON.parse(JSON.stringify(demandZonesGeoJSON));
+    var loadVal = Math.max(0, Number(totalLoadKw) || 0);
+
+    var totalBaseLoad = 0;
+    (zonesFc.features || []).forEach(function (f) {
+      totalBaseLoad += Number((f.properties || {}).base_load_kw) || 0;
+    });
+
+    zonesFc.features = (zonesFc.features || []).map(function (feature) {
+      var f = JSON.parse(JSON.stringify(feature));
+      var p = f.properties || {};
+      var baseLoad = Number(p.base_load_kw) || 0;
+      var ratio = totalBaseLoad > 0 ? (baseLoad / totalBaseLoad) : 0;
+      var zoneLoad = +(loadVal * ratio).toFixed(2);
+      var sharePct = +(ratio * 100).toFixed(1);
+
+      p.load_kw = Math.max(0, zoneLoad);
+      p.load_share_pct = sharePct;
+      p.label = 'illustrative zone';
+      f.properties = p;
+      return f;
+    });
+
+    return zonesFc;
+  }
+
   return {
     parseDispatchRow: parseDispatchRow,
     applyDispatch: applyDispatch,
-    buildEnergyFlow: buildEnergyFlow
+    buildEnergyFlow: buildEnergyFlow,
+    distributeDemandLoad: distributeDemandLoad
   };
 }));
 

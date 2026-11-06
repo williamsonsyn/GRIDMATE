@@ -12,7 +12,7 @@ Assets are placed plausibly:
 - Hydro placed on a real shoreline of a real water polygon (Valvan reservoir), not inside water (< 100m)
 - Battery placed near substation / central grid node
 - Central demand hub placed in Lonavala municipal core
-- Demand zones shaped from real landuse data in raw_landuse.geojson (Town residential, Khandala resorts, Valvan industrial, Bhushi recreation)
+- Demand zones: illustrative zones (hand-defined polygons), not OSM-derived (Town residential, Khandala resorts, Valvan industrial, Bhushi recreation)
 """
 
 import json
@@ -213,7 +213,7 @@ def generate_assets():
 
 
 def generate_demand_zones():
-    """Generates demand zone polygons from real raw_landuse.geojson where available.
+    """Generates demand zone polygons from illustrative zones (hand-defined polygons), not OSM-derived.
 
     Base load totals exactly 900.0 kW.
     """

@@ -6,6 +6,7 @@ Functions:
 - load_dispatch(path_or_dict, timestamp_or_index=0) -> dict
 - apply_dispatch(assets_geojson, dispatch_row, scenario_id=None) -> dict (GeoJSON)
 - build_energy_flow(dispatch_row, assets_geojson) -> dict (GeoJSON)
+- distribute_demand_load(demand_zones_geojson, total_load_kw) -> dict (GeoJSON)
 
 Resource names and contracts strictly follow GRIDMATE_ARCHITECTURE.md:
 solar_kw, wind_kw, hydro_kw, battery_kw, grid_kw, load_kw, curtailment_kw, battery_soc_kwh
@@ -263,4 +264,45 @@ def build_energy_flow(
         "name": "GridMate_Dynamic_Energy_Flow",
         "features": flow_features
     }
+
+
+def distribute_demand_load(
+    demand_zones_geojson: Union[str, Path, Dict[str, Any]],
+    total_load_kw: float
+) -> Dict[str, Any]:
+    """
+    Distributes total system load across demand zones proportionally to base_load_kw.
+    Ensures no negative outputs, computes zone share percent and current load_kw.
+    Labels zones as 'illustrative zone'.
+    """
+    if isinstance(demand_zones_geojson, (str, Path)):
+        with open(demand_zones_geojson, "r", encoding="utf-8") as f:
+            zones_fc = json.load(f)
+    else:
+        zones_fc = copy.deepcopy(demand_zones_geojson)
+
+    load_val = max(0.0, float(total_load_kw))
+    total_base_load = sum(
+        float(f.get("properties", {}).get("base_load_kw", 0.0))
+        for f in zones_fc.get("features", [])
+    )
+
+    updated_features = []
+    for f in zones_fc.get("features", []):
+        feat = copy.deepcopy(f)
+        props = feat.get("properties", {})
+        base_load = float(props.get("base_load_kw", 0.0))
+        ratio = (base_load / total_base_load) if total_base_load > 0 else 0.0
+        zone_load = round(load_val * ratio, 2)
+        share_pct = round(ratio * 100.0, 1)
+
+        props["load_kw"] = max(0.0, zone_load)
+        props["load_share_pct"] = share_pct
+        props["label"] = "illustrative zone"
+        feat["properties"] = props
+        updated_features.append(feat)
+
+    zones_fc["features"] = updated_features
+    return zones_fc
+
 
