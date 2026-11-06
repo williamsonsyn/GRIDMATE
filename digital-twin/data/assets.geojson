@@ -13,19 +13,19 @@
       "properties": {
         "id": "solar_01",
         "type": "solar",
-        "name": "Solar Site 01 - Tungarli Plateau (Simulated)",
-        "capacity_kw": 300.0,
+        "name": "Solar Farm 01 - Campole Valley (Simulated)",
+        "capacity_kw": 350.0,
         "status": "active",
         "is_synthetic": true,
         "data_source": "synthetic_demo",
-        "location_source": "synthetic_siting",
-        "note": "Simulated prototype asset. Coordinates are illustrative, not surveyed real infrastructure."
+        "location_source": "osm",
+        "note": "Simulated prototype asset. Sited at real OSM solar plant way/1263886494. Coordinates are illustrative, not surveyed installation."
       },
       "geometry": {
         "type": "Point",
         "coordinates": [
-          73.415,
-          18.766
+          73.36335,
+          18.73242
         ]
       }
     },
@@ -34,19 +34,19 @@
       "properties": {
         "id": "solar_02",
         "type": "solar",
-        "name": "Solar Site 02 - Valvan Open Ground (Simulated)",
-        "capacity_kw": 300.0,
+        "name": "Solar Farm 02 - Urse Corridor (Simulated)",
+        "capacity_kw": 250.0,
         "status": "active",
         "is_synthetic": true,
         "data_source": "synthetic_demo",
-        "location_source": "synthetic_siting",
-        "note": "Simulated prototype asset. Coordinates are illustrative, not surveyed real infrastructure."
+        "location_source": "osm",
+        "note": "Simulated prototype asset. Sited at real OSM solar plant way/421293013. Coordinates are illustrative, not surveyed installation."
       },
       "geometry": {
         "type": "Point",
         "coordinates": [
-          73.438,
-          18.748
+          73.63996,
+          18.71262
         ]
       }
     },
@@ -139,19 +139,61 @@
       "properties": {
         "id": "hydro_01",
         "type": "hydro",
-        "name": "Hydro Plant 01 - Valvan Shore Powerhouse (Simulated)",
-        "capacity_kw": 400.0,
+        "name": "Hydro Plant 01 - Bhivpuri Station (Simulated)",
+        "capacity_kw": 160.0,
         "status": "active",
         "is_synthetic": true,
         "data_source": "synthetic_demo",
-        "location_source": "osm_shoreline",
-        "note": "Simulated prototype asset sited on real Valvan reservoir shoreline."
+        "location_source": "osm",
+        "note": "Simulated prototype asset. Sited at real OSM hydroelectric plant way/972353126 (TATA Bhivpuri Hydroelectric Power Plant). Powerhouse position not surveyed."
       },
       "geometry": {
         "type": "Point",
         "coordinates": [
-          73.42188,
-          18.75835
+          73.4521,
+          18.93679
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "hydro_02",
+        "type": "hydro",
+        "name": "Hydro Plant 02 - Pawana Station (Simulated)",
+        "capacity_kw": 140.0,
+        "status": "active",
+        "is_synthetic": true,
+        "data_source": "synthetic_demo",
+        "location_source": "osm",
+        "note": "Simulated prototype asset. Sited at real OSM hydroelectric plant way/1138681292 (Pawana Hydroelectric Power Station). Powerhouse position not surveyed."
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          73.49478,
+          18.68142
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "hydro_03",
+        "type": "hydro",
+        "name": "Hydro Plant 03 - KHOPOLI Station (Simulated)",
+        "capacity_kw": 100.0,
+        "status": "active",
+        "is_synthetic": true,
+        "data_source": "synthetic_demo",
+        "location_source": "osm",
+        "note": "Simulated prototype asset. Sited at real OSM hydroelectric plant way/1463910401 (KHOPOLI). Powerhouse position not surveyed."
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          73.35575,
+          18.78183
         ]
       }
     },

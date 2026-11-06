@@ -5,11 +5,11 @@
   "zoom": 11.2,
   "pitch": 0,
   "bearing": 0,
-  "context_bbox": [73.25, 18.62, 73.62, 18.92],
-  "asset_bbox": [73.33, 18.70, 73.61, 18.91],
+  "context_bbox": [73.25, 18.60, 73.68, 18.97],
+  "asset_bbox": [73.33, 18.66, 73.66, 18.95],
   "bounds": [
-    [73.2500, 18.6200],
-    [73.6200, 18.9200]
+    [73.2500, 18.6000],
+    [73.6800, 18.9700]
   ],
   "basemaps": {
     "streets": {
@@ -28,7 +28,7 @@
         "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
       ],
       "tileSize": 256,
-      "maxzoom": 19,
+      "maxzoom": 17,
       "attribution": "Imagery © Esri, Maxar, Earthstar Geographics | © OpenStreetMap contributors"
     },
     "plain_dark": {

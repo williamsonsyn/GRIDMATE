@@ -2,8 +2,8 @@
 
 > **"From Weather to Watts, Intelligently."**  
 > Testbed: Lonavala & Khandala, Maharashtra, India  
-> - Regional Context BBox: `[73.25, 18.62, 73.62, 18.92]` (Water, Roads & Power Lines GIS layers)  
-> - Asset Core BBox: `[73.33, 18.70, 73.61, 18.91]` (Energy Assets, Demand Zones & Wind Ridge)  
+> - Regional Context BBox: `[73.25, 18.60, 73.68, 18.97]` (Water, Roads & Power Lines GIS layers)  
+> - Asset Core BBox: `[73.33, 18.66, 73.66, 18.95]` (Energy Assets, Demand Zones & Wind Ridge)  
 > Module: `digital-twin/` (Member 3)  
 > Stack: Python 3.12, GeoPandas, Shapely, PyProj, MapLibre GL JS, pytest
 
@@ -24,7 +24,7 @@ In strict compliance with Section 15 of `GRIDMATE_ARCHITECTURE.md`, real OpenStr
 | **Water Bodies & Reservoirs** (`water_features.geojson`) | **Real** | © OpenStreetMap contributors (ODbL 1.0) via manual overpass-turbo export | Regional water bodies clipped to `context_bbox`: Valvan Lake / Dam, Bhushi Dam Reservoir, Tungarli Lake, Khandala Lake, Tata Dam, Pavana Lake, Shirota Lake, and headwater river/stream networks. Verified high-vertex polygon geometries. `is_synthetic: false`. |
 | **Road Network** (`roads.geojson`) | **Real** | © OpenStreetMap contributors (ODbL 1.0) via manual overpass-turbo export | Regional corridors clipped to `context_bbox`: Mumbai-Pune Expressway, NH48 trunk highway corridors, Khandala connectors, secondary roads. `is_synthetic: false`. |
 | **Power Transmission Lines** (`power_lines.geojson`) | **Real** | © OpenStreetMap contributors (ODbL 1.0) via manual overpass-turbo export (`raw_power.geojson`) | Regional high-voltage power transmission lines and cables clipped to `context_bbox` (< 1 MB). `is_synthetic: false`. |
-| **Energy Assets** (`assets.geojson`) | **Synthetic** | GridMate Prototype Model (`data_source: synthetic_demo`) | Plausibly sited inside `asset_bbox`: solar on sunny elevated plateaus, wind clustered from 28 real OSM wind turbines on the ridge (`location_source: "osm"`), hydro on the real shoreline of Valvan Dam reservoir ($39.1\text{ m}$ from water edge, strictly outside water), grid intertie sited next to nearest real substation (`location_source: "osm_nearest_substation"`), battery adjacent to substation, central municipal demand hub. All features carry `is_synthetic: true` for capacity/output and explicit `location_source` provenance. |
+| **Energy Assets** (`assets.geojson`) | **Hybrid (Real OSM Sites / Simulated Capacity)** | Real OpenStreetMap plant & turbine locations (`raw_hydro.geojson`, `raw_solar.geojson`, `raw_wind.geojson`, `raw_power.geojson`, ODbL 1.0) | Sited inside `asset_bbox`: 3 real OSM hydro plants (`location_source: "osm"`: Khopoli, Bhivpuri, Pawana), 2 real OSM solar farm sites (`location_source: "osm"`: Campole Valley [350 kW], Urse Corridor [250 kW] — non-solar Rajmachi excluded), 4 real OSM wind clusters from 28 ridge turbines (`location_source: "osm"`), 1 grid intertie adjacent to real substation (`location_source: "osm_nearest_substation"`), 1 battery storage BESS, and 1 central municipal demand hub (12 total assets). All features carry `(Simulated)` in name, `is_synthetic: true` for capacity/output, and explicit `location_source` provenance. |
 | **Demand Zones** (`demand_zones.geojson`) | **Real Geometries / Synthetic Load** | Real OpenStreetMap landuse polygons (`raw_landuse.geojson`, ODbL 1.0) | Multi-vertex irregular polygons derived directly from real OSM residential/commercial landuse relations and ways (`geometry_source: "osm_landuse"`): Lonavala Town Center & Residential (400 kW), Khandala Tourism Corridor (250 kW), Valvan Industrial Pocket (180 kW), and Bhushi Recreation Sector (70 kW). Total base load: **900.0 kW**. |
 | **Energy Flow Topology** (`energy_flow_template.geojson`) | **Synthetic** | GridMate Dynamic Flow Topology | Radial distribution topology from generation sources to the central demand hub and battery node inside `asset_bbox`. |
 | **Scenarios & Dispatch** (`data/scenarios/*.json`) | **Synthetic** | GridMate Dispatch Optimization Simulation | Validated dispatch schedules for 5 canonical weather/load scenarios. |
@@ -52,12 +52,12 @@ digital-twin/
 │   │   ├── raw_wind.geojson           # 28 real OSM wind turbine nodes along the ridge
 │   │   ├── raw_power.geojson          # Real OSM transmission lines & substations
 │   │   └── metadata.json              # Provenance, bboxes, feature counts, export date
-│   ├── assets.geojson                 # 10 clean energy assets (Point features, EPSG:4326)
+│   ├── assets.geojson                 # 12 clean energy assets (Point features, EPSG:4326)
 │   ├── demand_zones.geojson           # 4 demand zones from real OSM landuse (900 kW base load, EPSG:4326)
 │   ├── water_features.geojson         # 107 clean water polygons & lines (< 2 MB)
 │   ├── roads.geojson                  # 474 filtered road network segments (< 2 MB)
 │   ├── power_lines.geojson            # 67 filtered power transmission lines (< 1 MB)
-│   ├── energy_flow_template.geojson   # Topology lines from supply assets to demand hub
+│   ├── energy_flow_template.geojson   # 11 topology lines from supply assets to demand hub
 │   ├── sample_dispatch.json           # 24-hour reference dispatch profile
 │   └── scenarios/                     # 5 canonical scenarios
 │       ├── normal.json                # Normal Day (100% RE baseline)
@@ -91,8 +91,8 @@ digital-twin/
 
 ### 4.1 Dual Bounding Boxes
 All coordinates are strictly **EPSG:4326** in `[longitude, latitude]` format:
-- **`context_bbox`**: `[73.25, 18.62, 73.62, 18.92]` — Encloses regional water catchments (Pavana Lake, Shirota Lake, Tata Dam) and regional road networks.
-- **`asset_bbox`**: `[73.33, 18.70, 73.61, 18.91]` — Strict boundary for energy assets, demand zones, and wind ridge cluster.
+- **`context_bbox`**: `[73.25, 18.60, 73.68, 18.97]` — Encloses regional water catchments (Pavana Lake, Shirota Lake, Tata Dam) and regional road networks.
+- **`asset_bbox`**: `[73.33, 18.66, 73.66, 18.95]` — Strict boundary for energy assets, demand zones, and wind ridge cluster.
 
 ### 4.2 Exact Property Names (Architecture Contract)
 ```text
@@ -165,7 +165,7 @@ Member 4 can import or fetch the following verified deliverables from `digital-t
 
 | File Path | Description | Integration Use |
 |---|---|---|
-| `data/assets.geojson` | 10 clean energy assets (Point features, EPSG:4326) | Static layer or loaded via `gridmateMap.init()` |
+| `data/assets.geojson` | 12 clean energy assets (Point features, EPSG:4326) | Static layer or loaded via `gridmateMap.init()` |
 | `data/demand_zones.geojson` | 4 demand zones from real OSM landuse (EPSG:4326, 900 kW base load) | Static layer or loaded via `gridmateMap.init()` |
 | `data/water_features.geojson` | 107 real OSM water polygons & streams | Static GIS background context |
 | `data/roads.geojson` | 474 filtered highway & road segments | Static GIS transport network context |
@@ -177,10 +177,10 @@ Member 4 can import or fetch the following verified deliverables from `digital-t
 > **Disclaimer**: All energy asset coordinates and demand zone geometries are **synthetic and illustrative** prototype data for research and demonstration (`(Simulated)`), not verified real-world electrical infrastructure. Real features are water bodies, roads, power lines, and landuse polygons from OpenStreetMap.
 
 ### 5.2 Bounding Boxes (EPSG:4326 `[min_lon, min_lat, max_lon, max_lat]`)
-- **Regional Context BBox (`context_bbox`)**: `[73.25, 18.62, 73.62, 18.92]`
+- **Regional Context BBox (`context_bbox`)**: `[73.25, 18.60, 73.68, 18.97]`
   - Covers regional water catchments (Pavana Lake, Shirota Lake, Tata Dam) and highway corridors.
-- **Asset Core BBox (`asset_bbox`)**: `[73.33, 18.70, 73.61, 18.91]`
-  - Strictly encloses all 10 synthetic energy assets, 4 demand zones, and wind ridge cluster.
+- **Asset Core BBox (`asset_bbox`)**: `[73.33, 18.66, 73.66, 18.95]`
+  - Strictly encloses all 12 energy assets, 4 demand zones, and wind ridge cluster.
 
 ### 5.3 Property Contract & Exact Fields
 Dispatch data passed from Member 2 (forecasting/optimization) or Member 4 (FastAPI) must strictly provide the following fields:

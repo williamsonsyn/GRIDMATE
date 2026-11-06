@@ -253,46 +253,182 @@ def get_nearest_substation_point():
     return [73.41134, 18.74778], "way/1535010608"
 
 
-def generate_assets():
-    """Generates synthetic assets with strict properties as specified in the architecture contract."""
-    hydro_lon, hydro_lat = get_hydro_point_from_water()
-    wind_assets = cluster_osm_wind_turbines(k=4)
-    sub_coords, sub_id = get_nearest_substation_point()
+def generate_hydro_assets():
+    """Generates hydro assets up to 3 summing to exactly 400.0 kW.
+    Hierarchy:
+    1. If raw_hydro.geojson has real plants/generators, use polygon centroids (location_source: "osm").
+    2. Else if raw_dams.geojson has real dams, place just downstream of dam wall within ~100m (location_source: "osm_dam_nearest").
+    3. Else keep shoreline placement on Valvan reservoir (location_source: "osm_shoreline").
+    """
+    raw_hydro_path = RAW_DIR / "raw_hydro.geojson"
+    raw_dams_path = RAW_DIR / "raw_dams.geojson"
 
-    # Base assets
-    base_assets = [
-        # Solar sites (open elevated ground away from water & roads)
+    # 1. Real hydro plants
+    if raw_hydro_path.exists():
+        with open(raw_hydro_path, "r", encoding="utf-8") as f:
+            hdata = json.load(f)
+        feats = [f for f in hdata.get("features", []) if f.get("geometry")]
+        if feats:
+            feats_info = []
+            for feat in feats[:3]:
+                geom = shape(feat["geometry"])
+                c = geom.centroid
+                name = feat.get("properties", {}).get("name") or "Hydro Station"
+                fid = feat.get("properties", {}).get("@id", "osm_plant")
+                feats_info.append((name, fid, round(c.x, 5), round(c.y, 5)))
+
+            caps = [160.0, 140.0, 100.0] if len(feats_info) == 3 else ([200.0, 200.0] if len(feats_info) == 2 else [400.0])
+            hydro_assets = []
+            for idx, (hname, fid, lon, lat) in enumerate(feats_info):
+                clean_name = hname.replace("TATA ", "").replace("Hydroelectric Power ", "").replace(" Station", "").replace(" Plant", "").strip()
+                hydro_assets.append({
+                    "id": f"hydro_{idx+1:02d}",
+                    "type": "hydro",
+                    "name": f"Hydro Plant {idx+1:02d} - {clean_name} Station (Simulated)",
+                    "capacity_kw": caps[idx],
+                    "status": "active",
+                    "coordinates": [lon, lat],
+                    "location_source": "osm",
+                    "note": f"Simulated prototype asset. Sited at real OSM hydroelectric plant {fid} ({hname}). Powerhouse position not surveyed."
+                })
+            return hydro_assets
+
+    # 2. Real dams fallback
+    if raw_dams_path.exists():
+        with open(raw_dams_path, "r", encoding="utf-8") as f:
+            ddata = json.load(f)
+        dam_feats = [f for f in ddata.get("features", []) if f.get("geometry")]
+        if dam_feats:
+            dam_points = []
+            for feat in dam_feats:
+                geom = shape(feat["geometry"])
+                c = geom.centroid
+                dam_name = feat.get("properties", {}).get("name") or "Dam"
+                fid = feat.get("properties", {}).get("@id", "osm_dam")
+                dam_points.append((dam_name, fid, round(c.x, 5), round(c.y - 0.0004, 5)))
+            dam_points.sort(key=lambda d: math.hypot(d[2] - 73.415, d[3] - 18.750))
+            chosen = dam_points[:2]
+            caps = [200.0, 200.0] if len(chosen) == 2 else [400.0]
+            hydro_assets = []
+            for idx, (dname, fid, lon, lat) in enumerate(chosen):
+                hydro_assets.append({
+                    "id": f"hydro_{idx+1:02d}",
+                    "type": "hydro",
+                    "name": f"Hydro Plant {idx+1:02d} - {dname} Dam (Simulated)",
+                    "capacity_kw": caps[idx],
+                    "status": "active",
+                    "coordinates": [lon, lat],
+                    "location_source": "osm_dam_nearest",
+                    "note": f"Approximate position at a real dam ({fid}); powerhouse location not verified."
+                })
+            return hydro_assets
+
+    # 3. Existing shoreline fallback
+    hydro_lon, hydro_lat = get_hydro_point_from_water()
+    return [{
+        "id": "hydro_01",
+        "type": "hydro",
+        "name": "Hydro Plant 01 - Valvan Shore Powerhouse (Simulated)",
+        "capacity_kw": 400.0,
+        "status": "active",
+        "coordinates": [hydro_lon, hydro_lat],
+        "location_source": "osm_shoreline",
+        "note": "Simulated prototype asset sited on real Valvan reservoir shoreline."
+    }]
+
+
+# Explicitly exclude way/1176889251 (Rajmachi Foothills): not a verified real solar plant
+EXCLUDED_SOLAR_OSM_IDS = {"way/1176889251"}
+
+
+def generate_solar_assets():
+    """Generates real/plausible solar assets summing to exactly 600.0 kW.
+    Hierarchy:
+    1. If raw_solar.geojson has real solar sites (excluding unverified OSM features),
+       use up to 2 distinct sites (location_source: "osm"):
+       - Solar Farm 01 - Campole Valley (Simulated): 350.0 kW (way/1263886494)
+       - Solar Farm 02 - Urse Corridor (Simulated): 250.0 kW (way/421293013)
+    2. Otherwise keep 2 synthetic solar sites on open non-forest land (location_source: "synthetic_demo_site").
+    """
+    raw_solar_path = RAW_DIR / "raw_solar.geojson"
+    if raw_solar_path.exists():
+        with open(raw_solar_path, "r", encoding="utf-8") as f:
+            sdata = json.load(f)
+
+        solar_feats = []
+        for feat in sdata.get("features", []):
+            fid = feat.get("properties", {}).get("@id", "osm_solar")
+            # Explicitly exclude unverified features
+            if fid in EXCLUDED_SOLAR_OSM_IDS:
+                continue
+            if feat.get("geometry"):
+                geom = shape(feat["geometry"])
+                c = geom.centroid
+                sname = feat.get("properties", {}).get("name") or "Solar Site"
+                dist = math.hypot(c.x - 73.415, c.y - 18.750)
+                solar_feats.append((fid, sname, round(c.x, 5), round(c.y, 5), dist))
+
+        # Sort by distance to Lonavala center and pick up to 2 distinct sites (>= 2 km apart)
+        solar_feats.sort(key=lambda s: s[4])
+        chosen = []
+        for sf in solar_feats:
+            if not any(math.hypot(sf[2] - c[2], sf[3] - c[3]) < 0.02 for c in chosen):
+                chosen.append(sf)
+
+        if chosen:
+            # Campole 350 kW, Urse 250 kW = 600 kW total
+            chosen = chosen[:2]
+            caps = [350.0, 250.0] if len(chosen) == 2 else [600.0]
+            area_names = ["Campole Valley", "Urse Corridor"]
+            solar_assets = []
+            for idx, (fid, sname, lon, lat, _) in enumerate(chosen):
+                rname = area_names[idx] if idx < len(area_names) else f"Site {idx+1}"
+                solar_assets.append({
+                    "id": f"solar_{idx+1:02d}",
+                    "type": "solar",
+                    "name": f"Solar Farm {idx+1:02d} - {rname} (Simulated)",
+                    "capacity_kw": caps[idx],
+                    "status": "active",
+                    "coordinates": [lon, lat],
+                    "location_source": "osm",
+                    "note": f"Simulated prototype asset. Sited at real OSM solar plant {fid}. Coordinates are illustrative, not surveyed installation."
+                })
+            return solar_assets
+
+    # Fallback to 2 synthetic sites on open ground
+    return [
         {
             "id": "solar_01",
             "type": "solar",
-            "name": "Solar Site 01 - Tungarli Plateau (Simulated)",
+            "name": "Solar Demo Site 01 - Tungarli Plateau (Simulated)",
             "capacity_kw": 300.0,
             "status": "active",
             "coordinates": [73.4150, 18.7660],
-            "location_source": "synthetic_siting",
-            "note": SIMULATION_NOTE
+            "location_source": "synthetic_demo_site",
+            "note": "Synthetic demo site on open land; not a real solar installation."
         },
         {
             "id": "solar_02",
             "type": "solar",
-            "name": "Solar Site 02 - Valvan Open Ground (Simulated)",
+            "name": "Solar Demo Site 02 - Valvan Open Ground (Simulated)",
             "capacity_kw": 300.0,
             "status": "active",
             "coordinates": [73.4380, 18.7480],
-            "location_source": "synthetic_siting",
-            "note": SIMULATION_NOTE
-        },
-        # Hydro site (placed strictly on shoreline outside water polygon)
-        {
-            "id": "hydro_01",
-            "type": "hydro",
-            "name": "Hydro Plant 01 - Valvan Shore Powerhouse (Simulated)",
-            "capacity_kw": 400.0,
-            "status": "active",
-            "coordinates": [hydro_lon, hydro_lat],
-            "location_source": "osm_shoreline",
-            "note": "Simulated prototype asset sited on real Valvan reservoir shoreline."
-        },
+            "location_source": "synthetic_demo_site",
+            "note": "Synthetic demo site on open land; not a real solar installation."
+        }
+    ]
+
+
+def generate_assets():
+    """Generates synthetic assets with strict properties as specified in the architecture contract."""
+    solar_assets = generate_solar_assets()
+    hydro_assets = generate_hydro_assets()
+    wind_assets = cluster_osm_wind_turbines(k=4)
+    sub_coords, sub_id = get_nearest_substation_point()
+
+    # Infrastructure assets
+    infra_assets = [
         # Battery storage (placed adjacent to substation)
         {
             "id": "battery_01",
@@ -329,7 +465,7 @@ def generate_assets():
         }
     ]
 
-    all_assets_data = base_assets[:2] + wind_assets + base_assets[2:]
+    all_assets_data = solar_assets + wind_assets + hydro_assets + infra_assets
 
     features = []
     for asset in all_assets_data:

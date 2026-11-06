@@ -68,8 +68,8 @@ export const DOT_COLORS = {
   grid: '#fca5a5'
 };
 
-export const CONTEXT_BBOX = [73.25, 18.62, 73.62, 18.92];
-export const ASSET_BBOX = [73.33, 18.70, 73.61, 18.91];
+export const CONTEXT_BBOX = [73.25, 18.60, 73.68, 18.97];
+export const ASSET_BBOX = [73.33, 18.66, 73.66, 18.95];
 
 export const SCENARIO_IDS = ['normal', 'cloudy', 'heavy_monsoon', 'high_wind', 'peak_demand'];
 
@@ -739,7 +739,7 @@ export class GridMateMapController {
                 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
               ],
               tileSize: 256,
-              maxzoom: 19
+              maxzoom: 17
             }
           },
           layers: [
@@ -754,7 +754,7 @@ export class GridMateMapController {
               source: 'satellite-tiles',
               layout: { 'visibility': this.currentBasemap === 'satellite' ? 'visible' : 'none' },
               minzoom: 0,
-              maxzoom: 19
+              maxzoom: 22
             },
             {
               id: 'osm-tiles-layer',
@@ -771,7 +771,8 @@ export class GridMateMapController {
           container: this.containerId,
           style: initialStyle,
           maxBounds: maxBounds,
-          minZoom: 9.8,
+          minZoom: 9.0,
+          maxZoom: 18.5,
           attributionControl: false
         });
 
@@ -780,7 +781,7 @@ export class GridMateMapController {
         this.map.on('load', () => {
           if (this.isDestroyed) return;
           this.map.resize();
-          this.map.fitBounds(contextBounds, { padding: 40, duration: 0 });
+          this.map.fitBounds(contextBounds, { padding: this._getFitBoundsPadding(), duration: 0 });
 
           this._addVectorLayers();
           this._bindMapEvents();
@@ -1299,16 +1300,43 @@ export class GridMateMapController {
     }
   }
 
+  _getFitBoundsPadding() {
+    let panelWidth = 350;
+    let isPanelOpen = true;
+    if (typeof document !== 'undefined') {
+      const panelWrapper = document.getElementById('panel-wrapper');
+      if (panelWrapper && panelWrapper.classList.contains('collapsed')) {
+        isPanelOpen = false;
+      }
+      const panelEl = document.querySelector('.control-panel');
+      if (panelEl && panelEl.offsetWidth > 0) {
+        panelWidth = panelEl.offsetWidth;
+      }
+    }
+    return {
+      top: 100,
+      bottom: 120,
+      left: 40,
+      right: isPanelOpen ? (panelWidth + 40) : 40
+    };
+  }
+
   zoomToAssets() {
     if (!this.map) return;
     const ab = (this.config && this.config.asset_bbox) || ASSET_BBOX;
-    this.map.fitBounds([[ab[0], ab[1]], [ab[2], ab[3]]], { padding: 60 });
+    this.map.fitBounds([[ab[0], ab[1]], [ab[2], ab[3]]], {
+      padding: this._getFitBoundsPadding(),
+      duration: 800
+    });
   }
 
   zoomToRegion() {
     if (!this.map) return;
     const cb = (this.config && this.config.context_bbox) || CONTEXT_BBOX;
-    this.map.fitBounds([[cb[0], cb[1]], [cb[2], cb[3]]], { padding: 40 });
+    this.map.fitBounds([[cb[0], cb[1]], [cb[2], cb[3]]], {
+      padding: this._getFitBoundsPadding(),
+      duration: 800
+    });
   }
 
   getAssets() {

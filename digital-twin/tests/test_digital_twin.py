@@ -31,8 +31,8 @@ RAW_DIR = DATA_DIR / "raw"
 SCENARIO_DIR = DATA_DIR / "scenarios"
 
 # Two bounding boxes as defined in the contract:
-CONTEXT_BBOX = [73.25, 18.62, 73.62, 18.92]  # [min_lon, min_lat, max_lon, max_lat]
-ASSET_BBOX = [73.33, 18.70, 73.61, 18.91]    # Lonavala-Khandala core & wind ridge
+CONTEXT_BBOX = [73.25, 18.60, 73.68, 18.97]  # [min_lon, min_lat, max_lon, max_lat]
+ASSET_BBOX = [73.33, 18.66, 73.66, 18.95]    # Regional energy assets & demand zones
 
 REQUIRED_ASSET_TYPES = {"solar", "wind", "hydro", "battery", "grid", "demand"}
 REQUIRED_SCENARIOS = {"normal", "cloudy", "heavy_monsoon", "high_wind", "peak_demand"}
@@ -180,6 +180,7 @@ def test_water_and_roads_are_real_osm():
 def test_asset_spatial_constraints():
     assets_path = DATA_DIR / "assets.geojson"
     water_path = DATA_DIR / "water_features.geojson"
+    raw_hydro_path = RAW_DIR / "raw_hydro.geojson"
 
     with open(assets_path, "r", encoding="utf-8") as f:
         afc = json.load(f)
@@ -190,6 +191,11 @@ def test_asset_spatial_constraints():
 
     water_polys_utm = water_polys.to_crs("EPSG:32643")
     water_union_utm = water_polys_utm.geometry.union_all()
+
+    real_hydro_polys = []
+    if raw_hydro_path.exists():
+        gdf_raw_hydro = gpd.read_file(raw_hydro_path)
+        real_hydro_polys = list(gdf_raw_hydro.geometry)
 
     transformer_to_utm = Transformer.from_crs("EPSG:4326", "EPSG:32643", always_xy=True)
 
@@ -213,12 +219,14 @@ def test_asset_spatial_constraints():
         in_water = water_union_utm.contains(pt_utm)
         assert not in_water, f"Asset {aid} ({props.get('name')}) falls inside a water polygon!"
 
-        # 3. Hydro asset checks
+        # 3. Hydro asset checks: within 100m of water or inside real OSM hydro feature
         if props.get("type") == "hydro":
             hydro_found = True
             dist_to_water = water_union_utm.distance(pt_utm)
-            assert dist_to_water <= 100.0, (
-                f"Hydro asset {aid} is {dist_to_water:.1f} m from water polygon edge; must be <= 100 m on shoreline"
+            pt_deg = Point(lon, lat)
+            in_osm_hydro = any(poly.contains(pt_deg) for poly in real_hydro_polys)
+            assert dist_to_water <= 100.0 or in_osm_hydro, (
+                f"Hydro asset {aid} is {dist_to_water:.1f} m from water polygon edge and not inside a real OSM hydro feature"
             )
 
         # 4. Wind assets checks: high ground on real OSM wind ridge
@@ -242,6 +250,7 @@ def test_assets_schema_and_types():
     solar_count = 0
     wind_count = 0
     hydro_count = 0
+    type_capacities = {}
 
     for f in fc["features"]:
         props = f["properties"]
@@ -255,9 +264,11 @@ def test_assets_schema_and_types():
         assert props.get("is_synthetic") is True, f"Asset {aid} must have is_synthetic: True"
         assert props.get("data_source") == "synthetic_demo"
         assert "note" in props and "simulated" in props["note"].lower()
+        assert "location_source" in props and len(props["location_source"]) > 0, f"Asset {aid} must have location_source property"
 
         atype = props["type"]
         present_types.add(atype)
+        type_capacities[atype] = type_capacities.get(atype, 0.0) + props["capacity_kw"]
 
         if atype == "solar":
             solar_count += 1
@@ -272,6 +283,9 @@ def test_assets_schema_and_types():
     assert solar_count >= 2, f"Expected at least 2 solar sites, got {solar_count}"
     assert wind_count >= 2, f"Expected at least 2 wind sites, got {wind_count}"
     assert hydro_count >= 1, f"Expected at least 1 hydro plant, got {hydro_count}"
+    assert type_capacities.get("solar", 0.0) == pytest.approx(600.0, abs=0.1), f"Expected total solar capacity 600 kW, got {type_capacities.get('solar')}"
+    assert type_capacities.get("wind", 0.0) == pytest.approx(350.0, abs=0.1), f"Expected total wind capacity 350 kW, got {type_capacities.get('wind')}"
+    assert type_capacities.get("hydro", 0.0) == pytest.approx(400.0, abs=0.1), f"Expected total hydro capacity 400 kW, got {type_capacities.get('hydro')}"
 
 
 def test_demand_zones_properties():
@@ -603,13 +617,13 @@ def test_demand_zones_load_conservation_24h():
 # ==========================================
 
 def test_assets_directory_count_matches_geojson():
-    """Verifies that assets directory count matches the number of features in assets.geojson (10)."""
+    """Verifies that assets directory count matches the number of features in assets.geojson (12)."""
     assets_file = DATA_DIR / "assets.geojson"
     with open(assets_file, "r", encoding="utf-8") as f:
         assets_data = json.load(f)
 
     feature_count = len(assets_data["features"])
-    assert feature_count == 10, f"Expected 10 features in assets.geojson, found {feature_count}"
+    assert feature_count == 12, f"Expected 12 features in assets.geojson, found {feature_count}"
 
     # Verify map/index.html populates directory immediately on asset load and hooks click events
     index_html = (BASE_DIR / "map" / "index.html").read_text(encoding="utf-8")

@@ -79,7 +79,7 @@ const sampleDispatch = JSON.parse(
   fs.readFileSync(path.join(BASE_DIR, 'data', 'sample_dispatch.json'), 'utf-8')
 );
 
-assert.equal(assetsGeoJSON.features.length, 10, 'Expected 10 assets in assets.geojson');
+assert.equal(assetsGeoJSON.features.length, 12, 'Expected 12 assets in assets.geojson');
 
 // Test across all 24 hours of sample_dispatch
 for (let hour = 0; hour < sampleDispatch.dispatch.length; hour++) {

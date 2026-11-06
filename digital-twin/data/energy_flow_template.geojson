@@ -8,7 +8,7 @@
         "id": "flow_solar_01_to_demand",
         "source_id": "solar_01",
         "source_type": "solar",
-        "source_name": "Solar Site 01 - Tungarli Plateau (Simulated)",
+        "source_name": "Solar Farm 01 - Campole Valley (Simulated)",
         "target_id": "demand_hub_01",
         "target_name": "Lonavala Central Demand Hub (Simulated)",
         "default_flow_kw": 0.0,
@@ -19,8 +19,8 @@
         "type": "LineString",
         "coordinates": [
           [
-            73.415,
-            18.766
+            73.36335,
+            18.73242
           ],
           [
             73.407,
@@ -35,7 +35,7 @@
         "id": "flow_solar_02_to_demand",
         "source_id": "solar_02",
         "source_type": "solar",
-        "source_name": "Solar Site 02 - Valvan Open Ground (Simulated)",
+        "source_name": "Solar Farm 02 - Urse Corridor (Simulated)",
         "target_id": "demand_hub_01",
         "target_name": "Lonavala Central Demand Hub (Simulated)",
         "default_flow_kw": 0.0,
@@ -46,8 +46,8 @@
         "type": "LineString",
         "coordinates": [
           [
-            73.438,
-            18.748
+            73.63996,
+            18.71262
           ],
           [
             73.407,
@@ -170,7 +170,7 @@
         "id": "flow_hydro_01_to_demand",
         "source_id": "hydro_01",
         "source_type": "hydro",
-        "source_name": "Hydro Plant 01 - Valvan Shore Powerhouse (Simulated)",
+        "source_name": "Hydro Plant 01 - Bhivpuri Station (Simulated)",
         "target_id": "demand_hub_01",
         "target_name": "Lonavala Central Demand Hub (Simulated)",
         "default_flow_kw": 0.0,
@@ -181,8 +181,62 @@
         "type": "LineString",
         "coordinates": [
           [
-            73.42188,
-            18.75835
+            73.4521,
+            18.93679
+          ],
+          [
+            73.407,
+            18.752
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "flow_hydro_02_to_demand",
+        "source_id": "hydro_02",
+        "source_type": "hydro",
+        "source_name": "Hydro Plant 02 - Pawana Station (Simulated)",
+        "target_id": "demand_hub_01",
+        "target_name": "Lonavala Central Demand Hub (Simulated)",
+        "default_flow_kw": 0.0,
+        "is_synthetic": true,
+        "note": "Simulated prototype asset. Coordinates are illustrative, not surveyed real infrastructure."
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            73.49478,
+            18.68142
+          ],
+          [
+            73.407,
+            18.752
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "flow_hydro_03_to_demand",
+        "source_id": "hydro_03",
+        "source_type": "hydro",
+        "source_name": "Hydro Plant 03 - KHOPOLI Station (Simulated)",
+        "target_id": "demand_hub_01",
+        "target_name": "Lonavala Central Demand Hub (Simulated)",
+        "default_flow_kw": 0.0,
+        "is_synthetic": true,
+        "note": "Simulated prototype asset. Coordinates are illustrative, not surveyed real infrastructure."
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            73.35575,
+            18.78183
           ],
           [
             73.407,

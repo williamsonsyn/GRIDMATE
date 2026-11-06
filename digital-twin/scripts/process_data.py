@@ -29,9 +29,9 @@ DATA_DIR = BASE_DIR / "data"
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 # Context bounding box for regional GIS layers (water, roads, power lines)
-CONTEXT_BBOX = [73.25, 18.62, 73.62, 18.92]  # [min_lon, min_lat, max_lon, max_lat]
+CONTEXT_BBOX = [73.25, 18.60, 73.68, 18.97]  # [min_lon, min_lat, max_lon, max_lat]
 # Asset bounding box covering energy assets, demand zones, and wind ridge
-ASSET_BBOX = [73.33, 18.70, 73.61, 18.91]
+ASSET_BBOX = [73.33, 18.66, 73.66, 18.95]
 
 
 def process_water():
@@ -233,12 +233,18 @@ def write_metadata(water_gdf, roads_gdf, power_gdf):
     raw_landuse_path = RAW_DIR / "raw_landuse.geojson"
     raw_wind_path = RAW_DIR / "raw_wind.geojson"
     raw_power_path = RAW_DIR / "raw_power.geojson"
+    raw_hydro_path = RAW_DIR / "raw_hydro.geojson"
+    raw_dams_path = RAW_DIR / "raw_dams.geojson"
+    raw_solar_path = RAW_DIR / "raw_solar.geojson"
 
     raw_water_count = len(gpd.read_file(raw_water_path)) if raw_water_path.exists() else 0
     raw_roads_count = len(gpd.read_file(raw_roads_path)) if raw_roads_path.exists() else 0
     raw_landuse_count = len(gpd.read_file(raw_landuse_path)) if raw_landuse_path.exists() else 0
     raw_wind_count = len(gpd.read_file(raw_wind_path)) if raw_wind_path.exists() else 0
     raw_power_count = len(gpd.read_file(raw_power_path)) if raw_power_path.exists() else 0
+    raw_hydro_count = len(gpd.read_file(raw_hydro_path)) if raw_hydro_path.exists() else 0
+    raw_dams_count = len(gpd.read_file(raw_dams_path)) if raw_dams_path.exists() else 0
+    raw_solar_count = len(gpd.read_file(raw_solar_path)) if raw_solar_path.exists() else 0
 
     metadata = {
         "testbed": "Lonavala & Khandala Regional Context, Maharashtra, India",
@@ -258,12 +264,30 @@ def write_metadata(water_gdf, roads_gdf, power_gdf):
             "max_lon": ASSET_BBOX[2],
             "max_lat": ASSET_BBOX[3]
         },
+        "provenance": {
+            "real_osm_assets": [
+                "hydro (3 plants from raw_hydro.geojson: Khopoli, Bhivpuri, Pawana)",
+                "solar (3 sites from raw_solar.geojson: Campole Valley, Rajmachi Foothills, Urse)",
+                "wind (4 clusters from 28 turbines in raw_wind.geojson)"
+            ],
+            "approximate_osm_assets": [
+                "grid intertie (adjacent to real OSM substation)",
+                "battery storage (adjacent to substation intertie)"
+            ],
+            "synthetic_assets": [
+                "central demand hub (sited in municipal core)",
+                "demand zone load distribution (geometries from real OSM landuse)"
+            ]
+        },
         "raw_counts": {
             "raw_water": raw_water_count,
             "raw_roads": raw_roads_count,
             "raw_landuse": raw_landuse_count,
             "raw_wind": raw_wind_count,
-            "raw_power": raw_power_count
+            "raw_power": raw_power_count,
+            "raw_hydro": raw_hydro_count,
+            "raw_dams": raw_dams_count,
+            "raw_solar": raw_solar_count
         },
         "processed_counts": {
             "water_features": len(water_gdf),
