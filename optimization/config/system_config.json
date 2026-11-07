@@ -10,8 +10,13 @@
     "discharge_efficiency": 0.95
   },
   "grid": {
-    "grid_capacity_kw": 1000,
-    "grid_cost_per_kwh": 8,
-    "grid_emission_factor": 0.7
+    "capacity_kw": 1000,
+    "emission_factor": 0.7,
+    "base_energy_charge_rs_per_kwh": 8.0,
+    "tod": {
+      "normal": {"from_hour": 0,  "to_hour": 9,  "multiplier": 1.00},
+      "solar":  {"from_hour": 9,  "to_hour": 17, "multiplier_apr_sep": 0.85, "multiplier_oct_mar": 0.75},
+      "peak":   {"from_hour": 17, "to_hour": 24, "multiplier": 1.20}
+    }
   }
 }

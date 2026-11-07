@@ -5,10 +5,12 @@ PyPSA-based linear programming optimizer using HiGHS solver to determine the
 hourly dispatch of Solar, Wind, Hydro, Battery, and Grid.
 """
 
+import argparse
 import json
 import logging
 import warnings
 from pathlib import Path
+from typing import Union
 
 import pandas as pd
 import pypsa
@@ -25,13 +27,13 @@ logging.getLogger("pypsa.consistency").setLevel(logging.ERROR)
 try:
     from .network import build_network
     from .battery import validate_battery_config, normalize_battery_config
-    from .metrics import calculate_metrics
-    from .utils import load_json, save_json
+    from .metrics import calculate_metrics, calculate_cost_metrics
+    from .utils import load_json, save_json, build_grid_price_series
 except ImportError:
     from network import build_network
     from battery import validate_battery_config, normalize_battery_config
-    from metrics import calculate_metrics
-    from utils import load_json, save_json
+    from metrics import calculate_metrics, calculate_cost_metrics
+    from utils import load_json, save_json, build_grid_price_series
 
 
 # -------------------------------------------------
@@ -40,9 +42,10 @@ except ImportError:
 
 BASE_DIR = Path(__file__).resolve().parents[1]
 
-DATA_FILE   = BASE_DIR / "data"    / "sample_forecast.json"
-CONFIG_FILE = BASE_DIR / "config"  / "system_config.json"
-OUTPUT_FILE = BASE_DIR / "outputs" / "dispatch.json"
+DATA_FILE          = BASE_DIR / "data"    / "sample_forecast.json"
+CONFIG_FILE        = BASE_DIR / "config"  / "system_config.json"
+OUTPUT_FILE        = BASE_DIR / "outputs" / "dispatch.json"
+MEMBER1_FORECAST   = BASE_DIR.parent / "forecasting" / "outputs" / "forecast.json"
 
 
 # -------------------------------------------------
@@ -113,13 +116,22 @@ def load_config() -> dict:
     # Normalize grid parameters
     g = cfg["grid"]
     grid_cap = g.get("capacity_kw") or g.get("grid_capacity_kw", 1000)
-    grid_cost = g.get("cost_per_kwh") if "cost_per_kwh" in g else g.get("grid_cost_per_kwh", 8)
+    # Resolve base price — support several legacy key names
+    grid_cost = (
+        g.get("base_energy_charge_rs_per_kwh")
+        or g.get("cost_per_kwh")
+        or g.get("grid_cost_per_kwh")
+        or 8
+    )
     grid_emiss = g.get("emission_factor") if "emission_factor" in g else g.get("grid_emission_factor", 0.7)
 
     cfg["grid"] = {
         "capacity_kw": grid_cap,
-        "cost_per_kwh": grid_cost,
+        "cost_per_kwh": grid_cost,              # backward-compat alias
         "emission_factor": grid_emiss,
+        "base_energy_charge_rs_per_kwh": grid_cost,
+        "tod": g.get("tod"),                    # None when "tod" key is absent
+        # Full-spec aliases kept for downstream callers
         "grid_capacity_kw": grid_cap,
         "grid_cost_per_kwh": grid_cost,
         "grid_emission_factor": grid_emiss,
@@ -132,35 +144,41 @@ def load_config() -> dict:
 # 4. OPTIMIZATION FUNCTION
 # -------------------------------------------------
 
-def optimize_dispatch(forecast_data: dict) -> dict:
+def optimize_dispatch(
+    forecast_input: Union[dict, str, Path],
+    output_path: Union[str, Path, None] = None,
+) -> dict:
     """Run the PyPSA / HiGHS dispatch optimisation.
 
     Parameters
     ----------
-    forecast_data : dict
-        Must follow the input contract::
-
-            {
-                "location": "Lonavala",
-                "forecast_horizon_hours": 24,
-                "forecast": [
-                    {
-                        "timestamp": "2026-10-01T00:00:00",
-                        "solar_kw":  ...,
-                        "wind_kw":   ...,
-                        "hydro_kw":  ...,
-                        "load_kw":   ...
-                    },
-                    ...
-                ]
-            }
+    forecast_input : dict, str, or Path
+        Either a dictionary following the forecast contract, or a file path
+        (str / Path) pointing to a forecast JSON file.
+    output_path : str or Path, optional
+        Destination path for dispatch.json. Defaults to outputs/dispatch.json.
 
     Returns
     -------
     dict
         Dispatch results following the output contract.
-        Also written to outputs/dispatch.json.
+        Also written to output_path.
     """
+    # Accept dict or file path directly
+    if isinstance(forecast_input, (str, Path)):
+        p = Path(forecast_input)
+        if not p.exists():
+            raise FileNotFoundError(f"Forecast file not found: {p}")
+        forecast_data = load_json(p)
+    elif isinstance(forecast_input, dict):
+        forecast_data = forecast_input
+    else:
+        raise TypeError(
+            f"forecast_input must be a dict or file path, got {type(forecast_input).__name__}"
+        )
+
+    out_file = Path(output_path) if output_path else OUTPUT_FILE
+
     cfg     = load_config()
     battery = cfg["battery"]
     grid    = cfg["grid"]
@@ -205,7 +223,11 @@ def optimize_dispatch(forecast_data: dict) -> dict:
     # 4b. Build PyPSA network
     # ------------------------------------------------------------------
 
-    net = build_network(df, battery, grid)
+    # Build hourly grid price series (Rs/kWh) using ToD tariff if configured.
+    # Falls back to flat price when "tod" is absent (backward-compatible).
+    price_series = build_grid_price_series(df.index, grid)
+
+    net = build_network(df, battery, grid, price_series_rs_per_kwh=price_series)
 
     # ------------------------------------------------------------------
     # 4c. Solve with HiGHS
@@ -239,7 +261,16 @@ def optimize_dispatch(forecast_data: dict) -> dict:
     grid_out   = gen["Grid"]  * 1000.0
 
     bat_out    = net.storage_units_t.p["Battery"]   * 1000.0
-    bat_soc    = net.storage_units_t.state_of_charge["Battery"] * 1000.0
+    # Clip SOC to [min_soc, max_soc] to remove LP numerical noise.
+    # The solver may return values like -0.00 or marginally out-of-range values
+    # (e.g. 49.99 when min=50) that are physically on the boundary — clipping
+    # these is safe and keeps the validation clean.
+    bat_soc    = (
+        net.storage_units_t.state_of_charge["Battery"] * 1000.0
+    ).clip(
+        lower=float(battery["min_soc_kwh"]),
+        upper=float(battery["max_soc_kwh"]),
+    )
 
     # ------------------------------------------------------------------
     # 4e. Curtailment = available renewable - dispatched renewable
@@ -296,23 +327,44 @@ def optimize_dispatch(forecast_data: dict) -> dict:
     )
 
     # ------------------------------------------------------------------
-    # 4h. Assemble result
+    # 4h. Compute cost metrics (extra_metrics / extra_hourly)
+    #     These go in a separate top-level block so the required "metrics"
+    #     block stays exactly as specified in the output contract.
+    # ------------------------------------------------------------------
+
+    extra_metrics = calculate_cost_metrics(
+        dispatch_rows=dispatch,
+        prices=price_series,
+    )
+
+    extra_hourly = [
+        {
+            "timestamp": ts.isoformat(),
+            "grid_price_rs_per_kwh": round(float(price_series.loc[ts]), 4),
+        }
+        for ts in df.index
+    ]
+
+    # ------------------------------------------------------------------
+    # 4i. Assemble result
     # ------------------------------------------------------------------
 
     result = {
         "location": forecast_data.get("location", "Unknown"),
         "dispatch": dispatch,
         "metrics":  metrics,
+        "extra_metrics": extra_metrics,
+        "extra_hourly":  extra_hourly,
     }
 
     # ------------------------------------------------------------------
     # 4i. Write dispatch.json
     # ------------------------------------------------------------------
 
-    save_json(result, OUTPUT_FILE)
+    save_json(result, out_file)
 
     print("\nDispatch successfully generated!")
-    print("Output saved at:", OUTPUT_FILE)
+    print("Output saved at:", out_file)
     print("\nPerformance Metrics:")
     for name, value in metrics.items():
         print(f"  {name}: {value}")
@@ -321,13 +373,45 @@ def optimize_dispatch(forecast_data: dict) -> dict:
 
 
 # -------------------------------------------------
-# 5. MAIN ENTRY POINT
+# 5. MAIN ENTRY POINT & CLI
 # -------------------------------------------------
 
 if __name__ == "__main__":
 
-    if not DATA_FILE.exists():
-        raise FileNotFoundError(f"Forecast file not found: {DATA_FILE}")
+    parser = argparse.ArgumentParser(
+        description="GridMate Energy Optimization & Smart Dispatch Engine"
+    )
+    parser.add_argument(
+        "-i", "--input",
+        type=str,
+        default=None,
+        help="Path to forecast JSON file. Defaults to sample forecast or Member 1 forecast."
+    )
+    parser.add_argument(
+        "-o", "--output",
+        type=str,
+        default=None,
+        help="Path to write dispatch JSON output (default: outputs/dispatch.json)"
+    )
+    parser.add_argument(
+        "-f", "--forecasting",
+        action="store_true",
+        help="Take input directly from Member 1's forecasting/outputs/forecast.json"
+    )
 
-    forecast_data = load_json(DATA_FILE)
-    optimize_dispatch(forecast_data)
+    args = parser.parse_args()
+
+    # Determine which forecast to load
+    if args.input:
+        target_input = Path(args.input)
+    elif args.forecasting:
+        target_input = MEMBER1_FORECAST
+    elif DATA_FILE.exists():
+        target_input = DATA_FILE
+    elif MEMBER1_FORECAST.exists():
+        target_input = MEMBER1_FORECAST
+    else:
+        raise FileNotFoundError("No forecast file found. Provide path via --input.")
+
+    print(f"Reading forecast from: {target_input}")
+    optimize_dispatch(target_input, output_path=args.output)

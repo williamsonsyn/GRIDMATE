@@ -27,7 +27,7 @@ optimization/
 │   └── sample_forecast.json    # 24-hour Lonavala sample forecast
 ├── outputs/
 │   ├── dispatch.json           # Main dispatch result
-│   └── scenarios/              # Per-scenario dispatch results
+│   └── scenarios/              # Per-scenario dispatch results + summary.csv
 ├── src/
 │   ├── optimizer.py            # Main entry point + optimize_dispatch()
 │   ├── network.py              # PyPSA network builder
@@ -36,7 +36,9 @@ optimization/
 │   ├── utils.py                # Shared utilities (IO, scaling)
 │   └── run_scenarios.py        # Five-scenario testing harness
 ├── tests/
-│   └── test_optimizer.py       # pytest test suite
+│   ├── test_optimizer.py       # pytest test suite (31 tests)
+│   ├── test_tod.py             # ToD tariff tests (18 tests)
+│   └── test_cost_metrics.py    # Cost & savings metrics tests (7 tests)
 ├── requirements.txt
 └── README.md
 ```
@@ -53,9 +55,18 @@ pip install -r requirements.txt
 
 ### 2. Run the optimizer
 
+**Standard run (using sample forecast):**
 ```bash
-# From the optimization/ directory
 python src/optimizer.py
+```
+
+**Direct integration with Member 1 (AI Forecasting):**
+```bash
+# Uses Member 1's live forecast output directly:
+python src/optimizer.py --forecasting
+
+# Or pass any custom forecast file explicitly:
+python src/optimizer.py -i ../forecasting/outputs/forecast.json
 ```
 
 Expected output: `outputs/dispatch.json`
@@ -114,22 +125,55 @@ The optimizer works with the sample data until the real forecast is available.
       "solar_kw": 0.0,
       "wind_kw": 120.0,
       "hydro_kw": 220.0,
-      "battery_kw": 50.0,
-      "grid_kw": 0.0,
+      "battery_kw": 90.0,
+      "grid_kw": 50.0,
       "load_kw": 480.0,
       "curtailment_kw": 0.0,
-      "battery_soc_kwh": 250.0
+      "battery_soc_kwh": 110.0
     }
   ],
   "metrics": {
-    "renewable_penetration_percent": 94.4,
-    "grid_dependency_percent": 5.6,
+    "renewable_penetration_percent": 89.6,
+    "grid_dependency_percent": 10.4,
     "curtailment_percent": 0.0,
     "battery_utilization_percent": 3.2,
-    "estimated_co2_avoided_kg": 1200.0
-  }
+    "estimated_co2_avoided_kg": 302.4
+  },
+  "extra_metrics": {
+    "total_grid_cost_rs": 400.0,
+    "grid_only_cost_rs": 3840.0,
+    "baseline_cost_rs": 3840.0,
+    "savings_rs": 3440.0,
+    "savings_percent": 89.6,
+    "average_cost_rs_per_kwh_served": 0.83,
+    "grid_only_average_cost_rs_per_kwh": 8.0,
+    "label": "Cost figures are prototype estimates based on assumed tariffs, not billing-grade values."
+  },
+  "extra_hourly": [
+    {
+      "timestamp": "2026-10-01T00:00:00",
+      "grid_price_rs_per_kwh": 8.0
+    }
+  ]
 }
 ```
+
+**Power-balance check for the example row above:**
+```
+solar + wind + hydro + battery_kw + grid_kw = load_kw
+0 + 120 + 220 + 90 + 50 = 480  ✓
+```
+
+**Battery sign convention:**
+- **Positive `battery_kw`** → battery is **discharging** (supplying energy to the bus).
+- **Negative `battery_kw`** → battery is **charging** (absorbing energy from the bus).
+
+**Extra output blocks (do not change the required contract):**
+
+| Block | Contents |
+|---|---|
+| `extra_metrics` | `total_grid_cost_rs`, `grid_only_cost_rs`, `savings_rs`, `savings_percent`, `average_cost_rs_per_kwh_served`, `grid_only_average_cost_rs_per_kwh`, `label` |
+| `extra_hourly` | Per-hour `grid_price_rs_per_kwh` list (same length as `dispatch`) |
 
 Member 4 (Backend/Dashboard) consumes this file. No PyPSA imports are needed.
 
@@ -179,7 +223,7 @@ The objective function is a **weighted cost minimization**:
 | Component | Marginal cost | Rationale |
 |---|---|---|
 | Solar / Wind / Hydro | 0 Rs/MWh | Free — solver always prefers renewables |
-| Grid import | 8,000 Rs/MWh | Expensive — used only when needed |
+| Grid import | 6 000–9 600 Rs/MWh (ToD) | Expensive — used only when needed; peaks at 9 600 during 17:00–24:00 |
 | Battery cycling | 10 Rs/MWh | Small — prevents unnecessary charge/discharge |
 
 > **These weights are prototype assumptions, not universally optimal values.**
@@ -220,8 +264,34 @@ ends the 24-hour window at the same level it started.
 | Parameter | Default | Description |
 |---|---|---|
 | `capacity_kw` | 1000 | Maximum import power |
-| `cost_per_kwh` | 8 | Import tariff (Rs/kWh) |
+| `base_energy_charge_rs_per_kwh` | 8.0 | Base import tariff before ToD multiplier (Rs/kWh) |
 | `emission_factor` | 0.7 | Assumed CO₂ intensity (kg/kWh) |
+
+### Time-of-Day (ToD) Tariff
+
+The grid price is not flat — it follows a Maharashtra (MSEDCL-style) ToD
+structure. Each hour's price = `base_energy_charge_rs_per_kwh × multiplier`.
+
+| Slot | Hours | Season | Multiplier | Effective price |
+|---|---|---|---|---|
+| Normal | 00:00–09:00 | Both | 1.00 | 8.00 Rs/kWh |
+| Solar | 09:00–17:00 | Apr–Sep | 0.85 | 6.80 Rs/kWh |
+| Solar | 09:00–17:00 | Oct–Mar | 0.75 | 6.00 Rs/kWh |
+| Peak | 17:00–24:00 | Both | 1.20 | 9.60 Rs/kWh |
+
+> **⚠️ Prototype assumption notice**
+>
+> The base price (8 Rs/kWh), multipliers and slot boundaries are
+> **prototype assumptions** modelled on the MERC/MSEDCL 2026 ToD tariff
+> structure (normal 00–09, solar 09–17, peak 17–24, **no night rebate**).
+> These values **must be verified against the official MSEDCL/MERC tariff
+> order** before this module is used in any production or reporting context.
+> The 20 % peak surcharge (multiplier 1.20) is a prototype assumption.
+
+**Backward compatibility:** If the `"tod"` key is absent from
+`system_config.json` the module falls back to a flat price equal to
+`base_energy_charge_rs_per_kwh` (or the legacy `cost_per_kwh`/
+`grid_cost_per_kwh` key). No code changes are required by callers.
 
 ---
 
@@ -269,6 +339,19 @@ Actual values vary by time, season and marginal generator.
 
 ---
 
+### Cost & Savings Metrics (`extra_metrics`)
+
+All monetary figures are calculated from actual hourly dispatch results (1-hour timesteps, $1\text{ kW} \times 1\text{ h} = 1\text{ kWh}$):
+
+- **`total_grid_cost_rs`:** $\sum_t \text{grid\_kw}_t \times \text{price}_t$
+- **`grid_only_cost_rs`:** $\sum_t \text{load\_kw}_t \times \text{price}_t$ (baseline scenario where all load is purchased from the grid at that hour's price, with zero renewables and zero battery)
+- **`savings_rs`:** $\text{grid\_only\_cost\_rs} - \text{total\_grid\_cost\_rs}$
+- **`savings_percent`:** $(\text{savings\_rs} / \text{grid\_only\_cost\_rs}) \times 100$ ($0.0\%$ if baseline is zero)
+- **`average_cost_rs_per_kwh_served`:** $\text{total\_grid\_cost\_rs} / \text{total\_load\_kwh}$
+- **`grid_only_average_cost_rs_per_kwh`:** $\text{grid\_only\_cost\_rs} / \text{total\_load\_kwh}$
+
+---
+
 ## Scenarios
 
 | Scenario | Solar | Wind | Hydro | Load |
@@ -281,6 +364,20 @@ Actual values vary by time, season and marginal generator.
 
 The optimizer receives changed forecast data — it does not implement weather
 logic itself.
+
+### Scenario Summary Table (`outputs/scenarios/summary.csv`)
+
+Running `python src/run_scenarios.py` executes all five scenarios and generates `outputs/scenarios/summary.csv` with the following columns:
+1. `scenario`
+2. `renewable_penetration_percent`
+3. `grid_dependency_percent`
+4. `curtailment_percent`
+5. `battery_utilization_percent`
+6. `estimated_co2_avoided_kg`
+7. `total_grid_cost_rs`
+8. `grid_only_cost_rs`
+9. `savings_rs`
+10. `savings_percent`
 
 ---
 
@@ -298,15 +395,24 @@ Member 4 (Backend / Dashboard)
 
 ## Assumptions & Limitations
 
-- All generators are dispatchable within their forecast limits (no unit
+- **Dispatch Constraints:** All generators are dispatchable within their forecast limits (no unit
   commitment, no ramping constraints).
-- Hydro is treated as a run-of-river resource with an hourly availability cap.
-- Battery round-trip efficiency is modelled as symmetric
+- **Hydro:** Hydro is treated as a run-of-river resource with an hourly availability cap.
+- **Battery Efficiency:** Battery round-trip efficiency is modelled as symmetric
   (charge = discharge = 0.95).
-- CO₂ estimates use a fixed emission factor — a prototype-grade approximation.
-- The cyclic SOC constraint may cause infeasibility with very low battery
+- **CO₂ Estimates:** CO₂ estimates use a fixed emission factor — a prototype-grade approximation.
+- **Cyclic SOC:** The cyclic SOC constraint may cause infeasibility with very low battery
   capacity. Increase `capacity_kwh` or loosen `min_soc_kwh` if this occurs.
-- This is a prototype, **not** utility-grade grid software.
+- **Cost & Tariff Limitations:**
+  Cost and savings metrics are prototype estimates based on assumed tariffs and ToD multipliers.
+  They ignore:
+  - Demand charges (kVA / peak kW maximum demand billing)
+  - Fixed monthly charges and connection fees
+  - Off-peak night rebates (if applicable)
+  - Taxes, electricity duty, and regulatory surcharges
+  - Battery degradation and lifetime replacement costs
+  - Potential export / feed-in revenue to the grid
+- This is a hackathon prototype, **not** utility billing software.
 
 ---
 

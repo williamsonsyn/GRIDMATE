@@ -8,6 +8,7 @@ Usage (from optimization/):
     python src/run_scenarios.py
 """
 
+import csv
 import json
 import sys
 from pathlib import Path
@@ -182,41 +183,75 @@ def run_all_scenarios():
                 print(f"  {err}")
 
         metrics = result["metrics"]
+        extra_m = result.get("extra_metrics", {})
         summary.append({
-            "scenario":    name,
-            "renewable":   metrics["renewable_penetration_percent"],
-            "grid":        metrics["grid_dependency_percent"],
-            "curtailment": metrics["curtailment_percent"],
-            "battery":     metrics["battery_utilization_percent"],
-            "co2_avoided": metrics["estimated_co2_avoided_kg"],
-            "validation":  "PASS" if all(checks.values()) else "FAIL",
+            "scenario":                      name,
+            "renewable_penetration_percent": metrics["renewable_penetration_percent"],
+            "grid_dependency_percent":       metrics["grid_dependency_percent"],
+            "curtailment_percent":           metrics["curtailment_percent"],
+            "battery_utilization_percent":   metrics["battery_utilization_percent"],
+            "estimated_co2_avoided_kg":      metrics["estimated_co2_avoided_kg"],
+            "total_grid_cost_rs":            extra_m.get("total_grid_cost_rs", 0.0),
+            "grid_only_cost_rs":             extra_m.get("grid_only_cost_rs", 0.0),
+            "savings_rs":                    extra_m.get("savings_rs", 0.0),
+            "savings_percent":               extra_m.get("savings_percent", 0.0),
+            "validation":                    "PASS" if all(checks.values()) else "FAIL",
         })
+
+    # Write summary.csv
+    csv_file = output_dir / "summary.csv"
+    csv_columns = [
+        "scenario",
+        "renewable_penetration_percent",
+        "grid_dependency_percent",
+        "curtailment_percent",
+        "battery_utilization_percent",
+        "estimated_co2_avoided_kg",
+        "total_grid_cost_rs",
+        "grid_only_cost_rs",
+        "savings_rs",
+        "savings_percent",
+    ]
+    with open(csv_file, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=csv_columns, extrasaction="ignore")
+        writer.writeheader()
+        for row in summary:
+            writer.writerow(row)
 
     # Final comparison table
     print("\n========== FINAL SCENARIO REPORT ==========\n")
     header = (
-        f"{'Scenario':<18}"
-        f"{'Renew %':<12}"
-        f"{'Grid %':<10}"
-        f"{'Curtail %':<12}"
-        f"{'Battery %':<12}"
-        f"{'CO2 Avoided (kg)':<20}"
-        f"{'Validation'}"
+        f"{'scenario':<16}"
+        f"{'renewable_penetration_percent':<32}"
+        f"{'grid_dependency_percent':<25}"
+        f"{'curtailment_percent':<21}"
+        f"{'battery_utilization_percent':<29}"
+        f"{'estimated_co2_avoided_kg':<26}"
+        f"{'total_grid_cost_rs':<20}"
+        f"{'grid_only_cost_rs':<19}"
+        f"{'savings_rs':<14}"
+        f"{'savings_percent':<17}"
+        f"{'validation'}"
     )
     print(header)
     print("-" * len(header))
     for row in summary:
         print(
-            f"{row['scenario']:<18}"
-            f"{row['renewable']:<12.2f}"
-            f"{row['grid']:<10.2f}"
-            f"{row['curtailment']:<12.2f}"
-            f"{row['battery']:<12.2f}"
-            f"{row['co2_avoided']:<20.2f}"
+            f"{row['scenario']:<16}"
+            f"{row['renewable_penetration_percent']:<32.2f}"
+            f"{row['grid_dependency_percent']:<25.2f}"
+            f"{row['curtailment_percent']:<21.2f}"
+            f"{row['battery_utilization_percent']:<29.2f}"
+            f"{row['estimated_co2_avoided_kg']:<26.2f}"
+            f"{row['total_grid_cost_rs']:<20.2f}"
+            f"{row['grid_only_cost_rs']:<19.2f}"
+            f"{row['savings_rs']:<14.2f}"
+            f"{row['savings_percent']:<17.1f}"
             f"{row['validation']}"
         )
 
     print(f"\nScenario outputs saved in: {output_dir}")
+    print(f"Summary CSV saved at: {csv_file}")
     print("All scenario tests completed!")
 
 
