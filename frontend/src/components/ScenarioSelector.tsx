@@ -8,6 +8,7 @@ interface Props {
   phase: Phase;
   onSelect: (s: ScenarioId) => void;
   onRun: () => void;
+  onCompare: () => void;
 }
 
 const STEP: Record<Phase, string> = {
@@ -15,7 +16,7 @@ const STEP: Record<Phase, string> = {
 };
 const ORDER: Phase[] = ['forecasting', 'optimizing', 'updating'];
 
-export function ScenarioSelector({ scenarios, selected, active, phase, onSelect, onRun }: Props) {
+export function ScenarioSelector({ scenarios, selected, active, phase, onSelect, onRun, onCompare }: Props) {
   const busy = phase !== 'idle';
   const current = scenarios.find((s) => s.id === selected);
   const stale = !busy && active !== null && active !== selected;
@@ -31,6 +32,10 @@ export function ScenarioSelector({ scenarios, selected, active, phase, onSelect,
       <button type="button" onClick={onRun} disabled={busy}
         className="btn bg-teal-700 text-white hover:bg-teal-800 disabled:cursor-wait disabled:opacity-60">
         {busy ? 'Running...' : 'Run Simulation'}
+      </button>
+      <button type="button" onClick={onCompare} disabled={busy}
+        className="btn bg-paper text-ink-soft hover:bg-line disabled:cursor-wait disabled:opacity-60">
+        Compare all scenarios
       </button>
       <div className="min-w-[240px] flex-1" aria-live="polite">
         {busy ? (

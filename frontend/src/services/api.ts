@@ -1,5 +1,6 @@
 import type {
   AssetsResponse, ForecastResponse, HealthResponse, OptimizeResponse, ScenarioId, ScenarioInfo,
+  ScenarioSummaryResponse,
 } from '../types/api';
 
 const BASE: string = import.meta.env.VITE_API_BASE ?? '';
@@ -50,6 +51,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 export const api = {
   health: () => request<HealthResponse>('/api/health'),
   scenarios: () => request<ScenarioInfo[]>('/api/scenarios'),
+  scenariosSummary: () => request<ScenarioSummaryResponse>('/api/scenarios/summary'),
   assets: () => request<AssetsResponse>('/api/assets'),
   setScenario: (scenario: ScenarioId) =>
     request<ForecastResponse>('/api/scenario', { method: 'POST', body: JSON.stringify({ scenario }) }),

@@ -135,3 +135,22 @@ class HealthResponse(BaseModel):
     mode: str
     components: dict[str, bool]
     detail: dict[str, str] = Field(default_factory=dict)
+
+
+class ScenarioSummaryRow(BaseModel):
+    scenario: Scenario
+    label: str
+    renewable_penetration_percent: float
+    grid_dependency_percent: float
+    curtailment_percent: float
+    battery_utilization_percent: float
+    estimated_co2_avoided_kg: float
+    # Cost fields — present only when PyPSA optimizer is active; zero when mock.
+    total_grid_cost_rs: float = 0.0
+    grid_only_cost_rs: float = 0.0
+    savings_rs: float = 0.0
+    savings_percent: float = 0.0
+
+
+class ScenarioSummaryResponse(BaseModel):
+    rows: list[ScenarioSummaryRow]

@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ApiError, api } from '../services/api';
 import type {
-  AssetsResponse, DispatchResponse, ForecastResponse, HealthResponse, Metrics, MetricsResponse,
-  ScenarioId, ScenarioInfo,
+  AssetsResponse, CostMetrics, DispatchResponse, ForecastResponse, HealthResponse, Metrics, MetricsResponse,
+  ScenarioId, ScenarioInfo, ScenarioSummaryRow,
 } from '../types/api';
 
 export type Phase = 'idle' | 'forecasting' | 'optimizing' | 'updating';
@@ -22,11 +22,17 @@ export interface SimulationState {
   metrics: MetricsResponse | null;
   previousMetrics: Metrics | null;
   previousScenario: ScenarioId | null;
+  previousCost: CostMetrics | null;
   assets: AssetsResponse | null;
   assetsError: string | null;
   health: HealthResponse | null;
   error: UiError | null;
   hour: number;
+  // scenario comparison
+  comparisonOpen: boolean;
+  comparisonRows: ScenarioSummaryRow[] | null;
+  comparisonLoading: boolean;
+  comparisonError: string | null;
 }
 
 const FALLBACK_SCENARIOS: ScenarioInfo[] = [
@@ -48,7 +54,9 @@ export function useSimulation() {
   const [state, setState] = useState<SimulationState>({
     phase: 'forecasting', scenarios: FALLBACK_SCENARIOS, selected: 'normal', active: null,
     forecast: null, dispatch: null, metrics: null, previousMetrics: null, previousScenario: null,
+    previousCost: null,
     assets: null, assetsError: null, health: null, error: null, hour: 12,
+    comparisonOpen: false, comparisonRows: null, comparisonLoading: false, comparisonError: null,
   });
   const running = useRef(false);
 
@@ -77,6 +85,7 @@ export function useSimulation() {
         dispatch: result.dispatch,
         previousMetrics: s.metrics ? s.metrics.metrics : null,
         previousScenario: s.metrics ? s.active : null,
+        previousCost: s.metrics?.cost as CostMetrics | null ?? null,
         metrics: result.metrics,
       }));
     } catch (e) {
@@ -104,6 +113,16 @@ export function useSimulation() {
     return () => { cancelled = true; };
   }, [run]);
 
+  const openComparison = useCallback(async () => {
+    patch({ comparisonOpen: true, comparisonLoading: true, comparisonError: null });
+    try {
+      const data = await api.scenariosSummary();
+      patch({ comparisonRows: data.rows, comparisonLoading: false });
+    } catch (e) {
+      patch({ comparisonLoading: false, comparisonError: toUiError(e).message });
+    }
+  }, [patch]);
+
   return {
     state,
     select: (selected: ScenarioId) => patch({ selected }),
@@ -111,5 +130,7 @@ export function useSimulation() {
     runSelected: () => run(state.selected),
     retry: () => run(state.selected),
     dismissError: () => patch({ error: null }),
+    openComparison,
+    closeComparison: () => patch({ comparisonOpen: false }),
   };
 }
