@@ -17,6 +17,7 @@ export interface SimulationState {
   scenarios: ScenarioInfo[];
   selected: ScenarioId;
   active: ScenarioId | null;
+  selectedDate: string;
   forecast: ForecastResponse | null;
   dispatch: DispatchResponse | null;
   metrics: MetricsResponse | null;
@@ -44,6 +45,7 @@ const FALLBACK_SCENARIOS: ScenarioInfo[] = [
 ];
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+const getTodayStr = () => new Date().toISOString().split('T')[0];
 
 function toUiError(e: unknown): UiError {
   if (e instanceof ApiError) return { kind: e.kind, message: e.message };
@@ -53,6 +55,7 @@ function toUiError(e: unknown): UiError {
 export function useSimulation() {
   const [state, setState] = useState<SimulationState>({
     phase: 'forecasting', scenarios: FALLBACK_SCENARIOS, selected: 'normal', active: null,
+    selectedDate: getTodayStr(),
     forecast: null, dispatch: null, metrics: null, previousMetrics: null, previousScenario: null,
     previousCost: null,
     assets: null, assetsError: null, health: null, error: null, hour: 12,
@@ -62,17 +65,18 @@ export function useSimulation() {
 
   const patch = useCallback((p: Partial<SimulationState>) => setState((s) => ({ ...s, ...p })), []);
 
-  const run = useCallback(async (scenario: ScenarioId) => {
+  const run = useCallback(async (scenario: ScenarioId, dateParam?: string | null) => {
     if (running.current) return;
     running.current = true;
     patch({ error: null, phase: 'forecasting' });
     try {
-      // Step 1: select scenario -> the forecast updates first.
-      const forecast = await api.setScenario(scenario);
+      const targetDate = dateParam !== undefined ? (dateParam || null) : (state.selectedDate || null);
+      // Step 1: select scenario & date -> the forecast updates first.
+      const forecast = await api.setScenario(scenario, targetDate);
       if (!forecast.forecast.length) throw new ApiError('The forecast came back empty.', 'pipeline', null);
       setState((s) => ({ ...s, forecast, phase: 'optimizing' }));
       // Step 2: optimization -> dispatch + metrics.
-      const result = await api.optimize(scenario);
+      const result = await api.optimize(scenario, targetDate);
       if (!result.dispatch.dispatch.length) throw new ApiError('The optimizer returned no dispatch.', 'pipeline', null);
       // Step 3: update digital twin and charts.
       setState((s) => ({ ...s, phase: 'updating' }));
@@ -81,6 +85,7 @@ export function useSimulation() {
         ...s,
         phase: 'idle',
         active: scenario,
+        selectedDate: targetDate || s.selectedDate,
         forecast: result.forecast,
         dispatch: result.dispatch,
         previousMetrics: s.metrics ? s.metrics.metrics : null,
@@ -93,7 +98,7 @@ export function useSimulation() {
     } finally {
       running.current = false;
     }
-  }, [patch]);
+  }, [patch, state.selectedDate]);
 
   // Initial load: scenarios, health, assets, then the default "normal" run.
   useEffect(() => {
@@ -126,9 +131,13 @@ export function useSimulation() {
   return {
     state,
     select: (selected: ScenarioId) => patch({ selected }),
+    setDate: (selectedDate: string) => {
+      patch({ selectedDate });
+      void run(state.selected, selectedDate);
+    },
     setHour: (hour: number) => patch({ hour }),
-    runSelected: () => run(state.selected),
-    retry: () => run(state.selected),
+    runSelected: () => run(state.selected, state.selectedDate),
+    retry: () => run(state.selected, state.selectedDate),
     dismissError: () => patch({ error: null }),
     openComparison,
     closeComparison: () => patch({ comparisonOpen: false }),

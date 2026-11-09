@@ -60,6 +60,32 @@ def test_invalid_scenario_rejected(client):
     assert client.post("/api/optimize", json={"scenario": "tornado"}).status_code == 422
 
 
+def test_forecast_with_date_mock(client, mock_mode):
+    r = client.get("/api/forecast", params={"date": "2026-11-20"})
+    assert r.status_code == 200
+    body = r.json()
+    assert body["date"] == "2026-11-20"
+    assert len(body["forecast"]) == 24
+    assert body["forecast"][0]["timestamp"].startswith("2026-11-20")
+
+
+def test_forecast_date_endpoint_mock(client, mock_mode):
+    r = client.get("/api/forecast/date", params={"date": "2026-11-25"})
+    assert r.status_code == 200
+    body = r.json()
+    assert body["date"] == "2026-11-25"
+    assert len(body["forecast"]) == 24
+
+
+def test_optimize_with_date_mock(client, mock_mode):
+    r = client.post("/api/optimize", json={"date": "2026-11-20"})
+    assert r.status_code == 200
+    body = r.json()
+    assert body["forecast"]["date"] == "2026-11-20"
+    assert body["dispatch"]["dispatch"][0]["timestamp"].startswith("2026-11-20")
+
+
+
 def test_scenario_selection_persists(client, mock_mode):
     client.post("/api/scenario", json={"scenario": "high_wind"})
     assert client.get("/api/forecast").json()["scenario"] == "high_wind"

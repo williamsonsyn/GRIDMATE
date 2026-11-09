@@ -159,3 +159,4 @@ export function ScenarioComparisonModal({ rows, loading, error, activeScenario, 
     </dialog>
   );
 }
+

@@ -53,8 +53,18 @@ export const api = {
   scenarios: () => request<ScenarioInfo[]>('/api/scenarios'),
   scenariosSummary: () => request<ScenarioSummaryResponse>('/api/scenarios/summary'),
   assets: () => request<AssetsResponse>('/api/assets'),
-  setScenario: (scenario: ScenarioId) =>
-    request<ForecastResponse>('/api/scenario', { method: 'POST', body: JSON.stringify({ scenario }) }),
-  optimize: (scenario: ScenarioId) =>
-    request<OptimizeResponse>('/api/optimize', { method: 'POST', body: JSON.stringify({ scenario }) }),
+  setScenario: (scenario: ScenarioId, date?: string | null) =>
+    request<ForecastResponse>('/api/scenario', {
+      method: 'POST',
+      body: JSON.stringify({ scenario, date: date || null }),
+    }),
+  optimize: (scenario: ScenarioId, date?: string | null) =>
+    request<OptimizeResponse>('/api/optimize', {
+      method: 'POST',
+      body: JSON.stringify({ scenario, date: date || null }),
+    }),
+  forecastByDate: (date: string, scenario?: ScenarioId) => {
+    const sc = scenario ? `&scenario=${scenario}` : '';
+    return request<ForecastResponse>(`/api/forecast?date=${date}${sc}`);
+  },
 };

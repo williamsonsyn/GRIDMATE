@@ -42,3 +42,4 @@ def get_scenarios_summary() -> ScenarioSummaryResponse:
                 detail=f"Pipeline failed for scenario {sc.value}: {exc}",
             ) from exc
     return ScenarioSummaryResponse(rows=rows)
+

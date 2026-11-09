@@ -8,8 +8,20 @@ router = APIRouter(tags=["forecast"])
 
 
 @router.get("/forecast", response_model=ForecastResponse)
-def get_forecast(scenario: Scenario | None = None) -> ForecastResponse:
+def get_forecast(
+    scenario: Scenario | None = None, date: str | None = None
+) -> ForecastResponse:
     try:
-        return service.get_forecast(scenario)
+        return service.get_forecast(scenario, date=date)
+    except ForecastError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+
+@router.get("/forecast/date", response_model=ForecastResponse)
+def get_forecast_by_date(
+    date: str, scenario: Scenario | None = None
+) -> ForecastResponse:
+    try:
+        return service.get_forecast(scenario, date=date)
     except ForecastError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc

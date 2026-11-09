@@ -10,6 +10,8 @@ export interface Meta {
   optimization_source: 'pypsa' | 'mock' | null;
   generated_at: string;
   warnings: string[];
+  date?: string | null;
+  note?: string | null;
 }
 
 export interface ForecastPoint {
@@ -39,6 +41,8 @@ export interface ForecastResponse {
   forecast: ForecastPoint[];
   scenario: ScenarioId;
   meta: Meta;
+  date?: string | null;
+  note?: string | null;
 }
 
 export interface DispatchResponse {

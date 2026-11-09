@@ -15,7 +15,7 @@ import { useSimulation } from '../hooks/useSimulation';
 import type { CostMetrics } from '../types/api';
 
 export function Dashboard() {
-  const { state, select, setHour, runSelected, retry, dismissError, openComparison, closeComparison } = useSimulation();
+  const { state, select, setDate, setHour, runSelected, retry, dismissError, openComparison, closeComparison } = useSimulation();
   const { phase, forecast, dispatch, metrics, assets, scenarios, active, previousMetrics, previousScenario, previousCost } = state;
   const busy = phase !== 'idle';
   const rows = dispatch?.dispatch ?? null;
@@ -39,7 +39,10 @@ export function Dashboard() {
           selected={state.selected}
           active={active}
           phase={phase}
+          selectedDate={state.selectedDate}
+          dateNote={forecast?.note || forecast?.meta?.note}
           onSelect={select}
+          onDateChange={setDate}
           onRun={() => void runSelected()}
           onCompare={() => void openComparison()}
         />

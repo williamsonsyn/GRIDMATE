@@ -401,6 +401,7 @@ def validate_future_inputs(
     df: pd.DataFrame,
     horizon: int,
     origin_ts: pd.Timestamp,
+    allow_arbitrary_dates: bool = False,
 ) -> None:
     """
     Validate user-provided future weather input DataFrame.
@@ -448,7 +449,7 @@ def validate_future_inputs(
         raise ValueError("Input data contains duplicate timestamps.")
 
     expected_first_ts = origin_ts + pd.Timedelta(hours=1)
-    if ts.iloc[0] != expected_first_ts:
+    if not allow_arbitrary_dates and ts.iloc[0] != expected_first_ts:
         raise ValueError(
             f"Input data timestamps must immediately follow the last historical timestamp ({origin_ts}). "
             f"Expected first timestamp: {expected_first_ts}, received: {ts.iloc[0]}."
@@ -601,6 +602,7 @@ def generate_forecast(
     save_output: bool = True,
     output_path: Optional[Union[str, Path]] = None,
     wind_model: str = "baseline",
+    allow_arbitrary_dates: bool = False,
 ) -> Dict[str, Any]:
     """
     Generate 6 to 24-hour ahead multi-target energy forecasts for Lonavala.
@@ -667,7 +669,9 @@ def generate_forecast(
             scenario=scenario,
         )
     else:
-        validate_future_inputs(input_data, horizon=horizon, origin_ts=origin_ts)
+        validate_future_inputs(
+            input_data, horizon=horizon, origin_ts=origin_ts, allow_arbitrary_dates=allow_arbitrary_dates
+        )
         df_future = input_data.copy().sort_values("timestamp").reset_index(drop=True)
         if scenario != "normal":
             df_future = apply_scenario_modifications(df_future, scenario)
@@ -697,7 +701,7 @@ def generate_forecast(
         # A. Solar Model (solar_kw)
         # -------------------------------------------------------------
         if step_idx == 0:
-            solar_irradiance_lag_1 = float(last_obs["solar_irradiance"])
+            solar_irradiance_lag_1 = float(last_obs["solar_irradiance"]) if not allow_arbitrary_dates else float(row_future["solar_irradiance"])
         else:
             solar_irradiance_lag_1 = float(df_future.iloc[step_idx - 1]["solar_irradiance"])
 
@@ -727,7 +731,7 @@ def generate_forecast(
         # B. Wind Model (wind_kw)
         # -------------------------------------------------------------
         if step_idx == 0:
-            wind_speed_lag_1 = float(last_obs["wind_speed"])
+            wind_speed_lag_1 = float(last_obs["wind_speed"]) if not allow_arbitrary_dates else float(row_future["wind_speed"])
         else:
             wind_speed_lag_1 = float(df_future.iloc[step_idx - 1]["wind_speed"])
 
@@ -787,7 +791,7 @@ def generate_forecast(
         # (baseline R^2 = -0.7383 vs cyclical experiment R^2 = -4.9384).
         # -------------------------------------------------------------
         if step_idx == 0:
-            water_flow_lag_1 = float(last_obs["water_flow"])
+            water_flow_lag_1 = float(last_obs["water_flow"]) if not allow_arbitrary_dates else float(row_future["water_flow"])
         else:
             water_flow_lag_1 = float(df_future.iloc[step_idx - 1]["water_flow"])
 
@@ -814,6 +818,9 @@ def generate_forecast(
         if lag_24_ts <= origin_ts:
             if lag_24_ts in history_lookup.index:
                 load_lag_24 = float(history_lookup.loc[lag_24_ts, "load_kw"])
+            elif allow_arbitrary_dates:
+                matching_h = df_history[df_history["hour"] == hour]
+                load_lag_24 = float(matching_h["load_kw"].median() if len(matching_h) > 0 else 600.0)
             else:
                 raise ValueError(
                     f"Historical load observation missing for required 24-hour lag timestamp: '{lag_24_ts}'."
@@ -823,6 +830,9 @@ def generate_forecast(
             prior_step_idx = int((lag_24_ts - start_forecast_ts) / pd.Timedelta(hours=1))
             if 0 <= prior_step_idx < len(rolling_load_preds):
                 load_lag_24 = float(rolling_load_preds[prior_step_idx])
+            elif allow_arbitrary_dates:
+                matching_h = df_history[df_history["hour"] == hour]
+                load_lag_24 = float(matching_h["load_kw"].median() if len(matching_h) > 0 else 600.0)
             else:
                 raise ValueError(
                     f"Predicted load missing for required 24-hour lag timestamp: '{lag_24_ts}'."
@@ -830,7 +840,12 @@ def generate_forecast(
 
         # 2. historical_load_lag_1:
         if step_idx == 0:
-            load_lag_1 = float(last_obs["load_kw"])
+            if not allow_arbitrary_dates:
+                load_lag_1 = float(last_obs["load_kw"])
+            else:
+                prev_h = (hour - 1) % 24
+                matching_prev = df_history[df_history["hour"] == prev_h]
+                load_lag_1 = float(matching_prev["load_kw"].median() if len(matching_prev) > 0 else 600.0)
         else:
             load_lag_1 = float(rolling_load_preds[-1])
 

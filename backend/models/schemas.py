@@ -24,6 +24,8 @@ class Meta(BaseModel):
     optimization_source: Literal["pypsa", "mock"] | None = None
     generated_at: str
     warnings: list[str] = Field(default_factory=list)
+    date: str | None = None
+    note: str | None = None
 
 
 class ForecastPoint(BaseModel):
@@ -40,6 +42,8 @@ class ForecastResponse(BaseModel):
     forecast: list[ForecastPoint]
     scenario: Scenario
     meta: Meta
+    date: str | None = None
+    note: str | None = None
 
 
 class DispatchPoint(BaseModel):
@@ -105,10 +109,12 @@ class ScenarioInfo(BaseModel):
 
 class ScenarioRequest(BaseModel):
     scenario: Scenario
+    date: str | None = None
 
 
 class OptimizeRequest(BaseModel):
     scenario: Scenario | None = None
+    date: str | None = None
 
 
 class OptimizeResponse(BaseModel):
