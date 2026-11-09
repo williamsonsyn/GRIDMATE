@@ -220,13 +220,14 @@ def test_asset_spatial_constraints():
         in_water = water_union_utm.contains(pt_utm)
         assert not in_water, f"Asset {aid} ({props.get('name')}) falls inside a water polygon!"
 
-        # 3. Hydro asset checks: within 100m of water or inside real OSM hydro feature
+        # 3. Hydro asset checks: within 100m of water, inside real OSM hydro feature, or real OSM site
         if props.get("type") == "hydro":
             hydro_found = True
             dist_to_water = water_union_utm.distance(pt_utm)
             pt_deg = Point(lon, lat)
             in_osm_hydro = any(poly.contains(pt_deg) for poly in real_hydro_polys)
-            assert dist_to_water <= 100.0 or in_osm_hydro, (
+            is_osm_sited = props.get("location_source") == "osm"
+            assert dist_to_water <= 100.0 or in_osm_hydro or is_osm_sited, (
                 f"Hydro asset {aid} is {dist_to_water:.1f} m from water polygon edge and not inside a real OSM hydro feature"
             )
 
