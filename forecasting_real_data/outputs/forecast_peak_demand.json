@@ -1,0 +1,174 @@
+{
+  "location": "Lonavala",
+  "forecast_horizon_hours": 24,
+  "forecast": [
+    {
+      "timestamp": "2026-01-01T00:00:00",
+      "solar_kw": 0.0,
+      "wind_kw": 4.03,
+      "hydro_kw": 104.79,
+      "load_kw": 687.86
+    },
+    {
+      "timestamp": "2026-01-01T01:00:00",
+      "solar_kw": 0.0,
+      "wind_kw": 13.94,
+      "hydro_kw": 104.79,
+      "load_kw": 714.84
+    },
+    {
+      "timestamp": "2026-01-01T02:00:00",
+      "solar_kw": 0.0,
+      "wind_kw": 28.56,
+      "hydro_kw": 104.79,
+      "load_kw": 733.11
+    },
+    {
+      "timestamp": "2026-01-01T03:00:00",
+      "solar_kw": 0.0,
+      "wind_kw": 25.05,
+      "hydro_kw": 104.79,
+      "load_kw": 740.27
+    },
+    {
+      "timestamp": "2026-01-01T04:00:00",
+      "solar_kw": 0.0,
+      "wind_kw": 39.68,
+      "hydro_kw": 104.79,
+      "load_kw": 767.73
+    },
+    {
+      "timestamp": "2026-01-01T05:00:00",
+      "solar_kw": 0.0,
+      "wind_kw": 44.43,
+      "hydro_kw": 104.79,
+      "load_kw": 820.74
+    },
+    {
+      "timestamp": "2026-01-01T06:00:00",
+      "solar_kw": 0.0,
+      "wind_kw": 40.6,
+      "hydro_kw": 104.79,
+      "load_kw": 884.02
+    },
+    {
+      "timestamp": "2026-01-01T07:00:00",
+      "solar_kw": 2.39,
+      "wind_kw": 44.28,
+      "hydro_kw": 104.79,
+      "load_kw": 971.11
+    },
+    {
+      "timestamp": "2026-01-01T08:00:00",
+      "solar_kw": 57.23,
+      "wind_kw": 44.24,
+      "hydro_kw": 104.79,
+      "load_kw": 1007.22
+    },
+    {
+      "timestamp": "2026-01-01T09:00:00",
+      "solar_kw": 159.22,
+      "wind_kw": 41.4,
+      "hydro_kw": 104.79,
+      "load_kw": 975.35
+    },
+    {
+      "timestamp": "2026-01-01T10:00:00",
+      "solar_kw": 255.11,
+      "wind_kw": 26.16,
+      "hydro_kw": 104.79,
+      "load_kw": 906.15
+    },
+    {
+      "timestamp": "2026-01-01T11:00:00",
+      "solar_kw": 303.07,
+      "wind_kw": 14.58,
+      "hydro_kw": 104.79,
+      "load_kw": 878.29
+    },
+    {
+      "timestamp": "2026-01-01T12:00:00",
+      "solar_kw": 360.92,
+      "wind_kw": 7.28,
+      "hydro_kw": 104.79,
+      "load_kw": 824.94
+    },
+    {
+      "timestamp": "2026-01-01T13:00:00",
+      "solar_kw": 367.09,
+      "wind_kw": 0.0,
+      "hydro_kw": 104.79,
+      "load_kw": 791.33
+    },
+    {
+      "timestamp": "2026-01-01T14:00:00",
+      "solar_kw": 326.09,
+      "wind_kw": 0.0,
+      "hydro_kw": 104.79,
+      "load_kw": 791.63
+    },
+    {
+      "timestamp": "2026-01-01T15:00:00",
+      "solar_kw": 258.22,
+      "wind_kw": 0.0,
+      "hydro_kw": 104.79,
+      "load_kw": 812.52
+    },
+    {
+      "timestamp": "2026-01-01T16:00:00",
+      "solar_kw": 168.34,
+      "wind_kw": 0.0,
+      "hydro_kw": 104.79,
+      "load_kw": 873.98
+    },
+    {
+      "timestamp": "2026-01-01T17:00:00",
+      "solar_kw": 77.74,
+      "wind_kw": 0.0,
+      "hydro_kw": 104.79,
+      "load_kw": 1039.64
+    },
+    {
+      "timestamp": "2026-01-01T18:00:00",
+      "solar_kw": 0.0,
+      "wind_kw": 0.0,
+      "hydro_kw": 104.79,
+      "load_kw": 1195.73
+    },
+    {
+      "timestamp": "2026-01-01T19:00:00",
+      "solar_kw": 0.0,
+      "wind_kw": 0.0,
+      "hydro_kw": 104.79,
+      "load_kw": 1245.8
+    },
+    {
+      "timestamp": "2026-01-01T20:00:00",
+      "solar_kw": 0.0,
+      "wind_kw": 0.0,
+      "hydro_kw": 104.79,
+      "load_kw": 1165.84
+    },
+    {
+      "timestamp": "2026-01-01T21:00:00",
+      "solar_kw": 0.0,
+      "wind_kw": 0.0,
+      "hydro_kw": 104.79,
+      "load_kw": 989.7
+    },
+    {
+      "timestamp": "2026-01-01T22:00:00",
+      "solar_kw": 0.0,
+      "wind_kw": 0.0,
+      "hydro_kw": 104.79,
+      "load_kw": 858.1
+    },
+    {
+      "timestamp": "2026-01-01T23:00:00",
+      "solar_kw": 0.0,
+      "wind_kw": 1.56,
+      "hydro_kw": 104.79,
+      "load_kw": 764.46
+    }
+  ]
+}
