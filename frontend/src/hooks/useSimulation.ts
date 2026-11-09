@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ApiError, api } from '../services/api';
 import type {
-  AssetsResponse, DispatchResponse, ForecastResponse, HealthResponse, Metrics, MetricsResponse,
-  ScenarioId, ScenarioInfo,
+  AssetsResponse, CostMetrics, DispatchResponse, ForecastResponse, HealthResponse, Metrics, MetricsResponse,
+  ScenarioId, ScenarioInfo, ScenarioSummaryRow,
 } from '../types/api';
 
 export type Phase = 'idle' | 'forecasting' | 'optimizing' | 'updating';
@@ -17,16 +17,23 @@ export interface SimulationState {
   scenarios: ScenarioInfo[];
   selected: ScenarioId;
   active: ScenarioId | null;
+  selectedDate: string;
   forecast: ForecastResponse | null;
   dispatch: DispatchResponse | null;
   metrics: MetricsResponse | null;
   previousMetrics: Metrics | null;
   previousScenario: ScenarioId | null;
+  previousCost: CostMetrics | null;
   assets: AssetsResponse | null;
   assetsError: string | null;
   health: HealthResponse | null;
   error: UiError | null;
   hour: number;
+  // scenario comparison
+  comparisonOpen: boolean;
+  comparisonRows: ScenarioSummaryRow[] | null;
+  comparisonLoading: boolean;
+  comparisonError: string | null;
 }
 
 const FALLBACK_SCENARIOS: ScenarioInfo[] = [
@@ -38,6 +45,7 @@ const FALLBACK_SCENARIOS: ScenarioInfo[] = [
 ];
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+const getTodayStr = () => new Date().toISOString().split('T')[0];
 
 function toUiError(e: unknown): UiError {
   if (e instanceof ApiError) return { kind: e.kind, message: e.message };
@@ -47,24 +55,28 @@ function toUiError(e: unknown): UiError {
 export function useSimulation() {
   const [state, setState] = useState<SimulationState>({
     phase: 'forecasting', scenarios: FALLBACK_SCENARIOS, selected: 'normal', active: null,
+    selectedDate: getTodayStr(),
     forecast: null, dispatch: null, metrics: null, previousMetrics: null, previousScenario: null,
+    previousCost: null,
     assets: null, assetsError: null, health: null, error: null, hour: 12,
+    comparisonOpen: false, comparisonRows: null, comparisonLoading: false, comparisonError: null,
   });
   const running = useRef(false);
 
   const patch = useCallback((p: Partial<SimulationState>) => setState((s) => ({ ...s, ...p })), []);
 
-  const run = useCallback(async (scenario: ScenarioId) => {
+  const run = useCallback(async (scenario: ScenarioId, dateParam?: string | null) => {
     if (running.current) return;
     running.current = true;
     patch({ error: null, phase: 'forecasting' });
     try {
-      // Step 1: select scenario -> the forecast updates first.
-      const forecast = await api.setScenario(scenario);
+      const targetDate = dateParam !== undefined ? (dateParam || null) : (state.selectedDate || null);
+      // Step 1: select scenario & date -> the forecast updates first.
+      const forecast = await api.setScenario(scenario, targetDate);
       if (!forecast.forecast.length) throw new ApiError('The forecast came back empty.', 'pipeline', null);
       setState((s) => ({ ...s, forecast, phase: 'optimizing' }));
       // Step 2: optimization -> dispatch + metrics.
-      const result = await api.optimize(scenario);
+      const result = await api.optimize(scenario, targetDate);
       if (!result.dispatch.dispatch.length) throw new ApiError('The optimizer returned no dispatch.', 'pipeline', null);
       // Step 3: update digital twin and charts.
       setState((s) => ({ ...s, phase: 'updating' }));
@@ -73,10 +85,12 @@ export function useSimulation() {
         ...s,
         phase: 'idle',
         active: scenario,
+        selectedDate: targetDate || s.selectedDate,
         forecast: result.forecast,
         dispatch: result.dispatch,
         previousMetrics: s.metrics ? s.metrics.metrics : null,
         previousScenario: s.metrics ? s.active : null,
+        previousCost: s.metrics?.cost as CostMetrics | null ?? null,
         metrics: result.metrics,
       }));
     } catch (e) {
@@ -84,9 +98,20 @@ export function useSimulation() {
     } finally {
       running.current = false;
     }
-  }, [patch]);
+  }, [patch, state.selectedDate]);
 
-  // Initial load: scenarios, health, assets, then the default "normal" run.
+  const fetchComparison = useCallback(async (dateParam?: string | null) => {
+    patch({ comparisonLoading: true, comparisonError: null });
+    try {
+      const targetDate = dateParam !== undefined ? (dateParam || null) : (state.selectedDate || null);
+      const data = await api.scenariosCompare(targetDate);
+      patch({ comparisonRows: data.rows, comparisonLoading: false });
+    } catch (e) {
+      patch({ comparisonLoading: false, comparisonError: toUiError(e).message });
+    }
+  }, [patch, state.selectedDate]);
+
+  // Initial load: scenarios, health, assets, then the default "normal" run and scenario comparison.
   useEffect(() => {
     let cancelled = false;
     void (async () => {
@@ -100,16 +125,37 @@ export function useSimulation() {
         assetsError: as.status === 'rejected' ? toUiError(as.reason).message : null,
       }));
       await run('normal');
+      if (!cancelled) {
+        void fetchComparison();
+      }
     })();
     return () => { cancelled = true; };
-  }, [run]);
+  }, [run, fetchComparison]);
+
+  const openComparison = useCallback(async () => {
+    patch({ comparisonOpen: true });
+    if (!state.comparisonRows) {
+      await fetchComparison(state.selectedDate);
+    }
+  }, [patch, fetchComparison, state.comparisonRows, state.selectedDate]);
 
   return {
     state,
     select: (selected: ScenarioId) => patch({ selected }),
+    selectAndRun: (scenario: ScenarioId) => {
+      patch({ selected: scenario });
+      void run(scenario, state.selectedDate);
+    },
+    setDate: (selectedDate: string) => {
+      patch({ selectedDate });
+      void run(state.selected, selectedDate);
+    },
     setHour: (hour: number) => patch({ hour }),
-    runSelected: () => run(state.selected),
-    retry: () => run(state.selected),
+    runSelected: () => run(state.selected, state.selectedDate),
+    retry: () => run(state.selected, state.selectedDate),
     dismissError: () => patch({ error: null }),
+    openComparison,
+    closeComparison: () => patch({ comparisonOpen: false }),
+    fetchComparison,
   };
 }

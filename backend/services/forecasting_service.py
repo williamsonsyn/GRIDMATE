@@ -75,3 +75,47 @@ def get_forecast(scenario: str) -> tuple[JsonDict, str, list[str]]:
             "mock",
             [f"Forecast model unavailable ({type(exc).__name__}); showing mock forecast."],
         )
+
+
+def get_forecast_for_date(
+    date_str: str, scenario: str = "normal"
+) -> tuple[JsonDict, str, list[str], str | None]:
+    """Return (forecast, source, warnings, note).
+
+    Uses Open-Meteo or historical average weather for date_str.
+    """
+    from .weather_service import get_weather_for_date
+
+    df_weather, weather_src, note = get_weather_for_date(date_str)
+    if config.MODE == "mock":
+        raw = mock_data.get_mock_forecast(scenario)
+        for i, row in enumerate(raw["forecast"]):
+            row["timestamp"] = f"{date_str}T{i:02d}:00:00"
+        return raw, "mock", [], note
+
+    try:
+        with _lock:
+            predict = _load_predict()
+            with contextlib.redirect_stdout(io.StringIO()):
+                raw = predict.generate_forecast(
+                    input_data=df_weather,
+                    horizon=config.HORIZON_HOURS,
+                    scenario=scenario,
+                    save_output=False,
+                    allow_arbitrary_dates=True,
+                )
+        return _round_rows(raw), "model", [], note
+    except Exception as exc:  # noqa: BLE001
+        log.exception("Real forecast for date %s failed", date_str)
+        if config.MODE == "real":
+            raise ForecastError(f"Forecasting for {date_str} failed: {exc}") from exc
+        raw = mock_data.get_mock_forecast(scenario)
+        for i, row in enumerate(raw["forecast"]):
+            row["timestamp"] = f"{date_str}T{i:02d}:00:00"
+        return (
+            raw,
+            "mock",
+            [f"Forecast model unavailable ({type(exc).__name__}); showing mock forecast."],
+            note,
+        )
+

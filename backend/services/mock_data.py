@@ -154,3 +154,39 @@ def get_mock_assets() -> JsonDict:
         "energy_flow": dict(empty),
         "map_config": {"center": [73.41, 18.75], "zoom": 10},
     }
+
+
+def get_mock_scenarios_summary() -> list[JsonDict]:
+    """Mock summary rows matching run_scenarios.py output."""
+    labels = {
+        "normal": "Normal Day",
+        "cloudy": "Cloudy Day",
+        "heavy_monsoon": "Heavy Monsoon",
+        "high_wind": "High Wind",
+        "peak_demand": "Peak Demand",
+    }
+    base_metrics = {
+        "normal": {"cost": 42009.12, "savings": 93974.88, "battery": 4.17, "ren": 71.63, "grid": 28.37, "co2": 8819.78},
+        "cloudy": {"cost": 62293.64, "savings": 73690.36, "battery": 4.17, "ren": 54.28, "grid": 45.72, "co2": 6683.45},
+        "heavy_monsoon": {"cost": 56240.24, "savings": 86542.96, "battery": 4.17, "ren": 60.42, "grid": 39.58, "co2": 7811.50},
+        "high_wind": {"cost": 26413.44, "savings": 109570.56, "battery": 4.17, "ren": 83.25, "grid": 16.75, "co2": 10250.30},
+        "peak_demand": {"cost": 82804.32, "savings": 93974.88, "battery": 4.17, "ren": 55.10, "grid": 44.90, "co2": 8819.78},
+    }
+    rows = []
+    for sc, m in base_metrics.items():
+        grid_only = m["cost"] + m["savings"]
+        rows.append({
+            "scenario": sc,
+            "label": labels[sc],
+            "renewable_penetration_percent": m["ren"],
+            "grid_dependency_percent": m["grid"],
+            "curtailment_percent": 0.0,
+            "battery_utilization_percent": m["battery"],
+            "estimated_co2_avoided_kg": m["co2"],
+            "total_grid_cost_rs": m["cost"],
+            "grid_only_cost_rs": grid_only,
+            "savings_rs": m["savings"],
+            "savings_percent": round((m["savings"] / grid_only) * 100, 1),
+            "validation": "PASS",
+        })
+    return rows

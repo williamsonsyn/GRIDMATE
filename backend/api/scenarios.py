@@ -19,7 +19,7 @@ def list_scenarios() -> list[ScenarioInfo]:
 def set_scenario(body: ScenarioRequest) -> ForecastResponse:
     """Select a scenario and return its updated forecast (step 1 of the pipeline)."""
     try:
-        return service.select_scenario(body.scenario)
+        return service.select_scenario(body.scenario, date=body.date)
     except ForecastError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 
@@ -28,6 +28,8 @@ def set_scenario(body: ScenarioRequest) -> ForecastResponse:
 def optimize(body: OptimizeRequest | None = None) -> OptimizeResponse:
     """Run scenario -> forecast -> optimization -> dispatch -> metrics."""
     try:
-        return service.run(body.scenario if body else None)
+        sc = body.scenario if body else None
+        dt = body.date if body else None
+        return service.run(sc, date=dt)
     except (ForecastError, OptimizationError) as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc

@@ -1,5 +1,6 @@
 import type {
   AssetsResponse, ForecastResponse, HealthResponse, OptimizeResponse, ScenarioId, ScenarioInfo,
+  ScenarioSummaryResponse,
 } from '../types/api';
 
 const BASE: string = import.meta.env.VITE_API_BASE ?? '';
@@ -50,9 +51,23 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 export const api = {
   health: () => request<HealthResponse>('/api/health'),
   scenarios: () => request<ScenarioInfo[]>('/api/scenarios'),
+  scenariosCompare: (date?: string | null) =>
+    request<ScenarioSummaryResponse>(date ? `/api/scenarios/compare?date=${encodeURIComponent(date)}` : '/api/scenarios/compare'),
+  scenariosSummary: (date?: string | null) =>
+    request<ScenarioSummaryResponse>(date ? `/api/scenarios/summary?date=${encodeURIComponent(date)}` : '/api/scenarios/summary'),
   assets: () => request<AssetsResponse>('/api/assets'),
-  setScenario: (scenario: ScenarioId) =>
-    request<ForecastResponse>('/api/scenario', { method: 'POST', body: JSON.stringify({ scenario }) }),
-  optimize: (scenario: ScenarioId) =>
-    request<OptimizeResponse>('/api/optimize', { method: 'POST', body: JSON.stringify({ scenario }) }),
+  setScenario: (scenario: ScenarioId, date?: string | null) =>
+    request<ForecastResponse>('/api/scenario', {
+      method: 'POST',
+      body: JSON.stringify({ scenario, date: date || null }),
+    }),
+  optimize: (scenario: ScenarioId, date?: string | null) =>
+    request<OptimizeResponse>('/api/optimize', {
+      method: 'POST',
+      body: JSON.stringify({ scenario, date: date || null }),
+    }),
+  forecastByDate: (date: string, scenario?: ScenarioId) => {
+    const sc = scenario ? `&scenario=${scenario}` : '';
+    return request<ForecastResponse>(`/api/forecast?date=${date}${sc}`);
+  },
 };

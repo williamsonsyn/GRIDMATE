@@ -10,7 +10,7 @@
     "discharge_efficiency": 0.95
   },
   "grid": {
-    "capacity_kw": 1000,
+    "capacity_kw": 1500,
     "emission_factor": 0.7,
     "base_energy_charge_rs_per_kwh": 8.0,
     "tod": {

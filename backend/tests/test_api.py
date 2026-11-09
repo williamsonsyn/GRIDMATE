@@ -27,6 +27,20 @@ def test_scenarios_listed(client):
     assert ids == SCENARIOS
 
 
+def test_scenarios_compare_endpoint_mock(client, mock_mode):
+    for path in ("/api/scenarios/compare", "/api/scenarios/summary", "/api/scenarios/run-all"):
+        r = client.get(path)
+        assert r.status_code == 200
+        rows = r.json()["rows"]
+        assert len(rows) == 5
+        assert {row["scenario"] for row in rows} == set(SCENARIOS)
+        for row in rows:
+            assert "total_grid_cost_rs" in row
+            assert "savings_rs" in row
+            assert "battery_utilization_percent" in row
+            assert row["validation"] == "PASS"
+
+
 @pytest.mark.parametrize("scenario", SCENARIOS)
 def test_forecast_contract_mock(client, mock_mode, scenario):
     r = client.get("/api/forecast", params={"scenario": scenario})
@@ -58,6 +72,43 @@ def test_invalid_scenario_rejected(client):
     assert client.post("/api/scenario", json={"scenario": "tornado"}).status_code == 422
     assert client.get("/api/forecast", params={"scenario": "tornado"}).status_code == 422
     assert client.post("/api/optimize", json={"scenario": "tornado"}).status_code == 422
+
+
+def test_forecast_with_date_mock(client, mock_mode):
+    r = client.get("/api/forecast", params={"date": "2026-11-20"})
+    assert r.status_code == 200
+    body = r.json()
+    assert body["date"] == "2026-11-20"
+    assert len(body["forecast"]) == 24
+    assert body["forecast"][0]["timestamp"].startswith("2026-11-20")
+
+
+def test_forecast_date_endpoint_mock(client, mock_mode):
+    r = client.get("/api/forecast/date", params={"date": "2026-11-25"})
+    assert r.status_code == 200
+    body = r.json()
+    assert body["date"] == "2026-11-25"
+    assert len(body["forecast"]) == 24
+
+
+def test_optimize_with_date_mock(client, mock_mode):
+    r = client.post("/api/optimize", json={"date": "2026-11-20"})
+    assert r.status_code == 200
+    body = r.json()
+    assert body["forecast"]["date"] == "2026-11-20"
+    assert body["dispatch"]["dispatch"][0]["timestamp"].startswith("2026-11-20")
+
+
+def test_dispatch_and_metrics_with_date_query_param(client, mock_mode):
+    r_disp = client.get("/api/dispatch", params={"date": "2026-11-22"})
+    assert r_disp.status_code == 200
+    assert r_disp.json()["meta"]["date"] == "2026-11-22"
+    assert r_disp.json()["dispatch"][0]["timestamp"].startswith("2026-11-22")
+
+    r_met = client.get("/api/metrics", params={"date": "2026-11-22"})
+    assert r_met.status_code == 200
+    assert r_met.json()["meta"]["date"] == "2026-11-22"
+
 
 
 def test_scenario_selection_persists(client, mock_mode):
@@ -165,3 +216,46 @@ def test_real_peak_demand_solved_by_pypsa(client, real_mode):
     assert body["dispatch"]["meta"]["optimization_source"] == "pypsa"
     cap = body["metrics"]["system"]["grid_capacity_kw"]
     assert cap >= 1500 and max(r["grid_kw"] for r in body["dispatch"]["dispatch"]) <= cap + 0.01
+
+
+@pytest.mark.real
+def test_real_date_optimization_changes_costs_and_battery(client, real_mode):
+    """Optimizing for two different dates produces distinct forecasts, battery schedules, and costs."""
+    date1 = "2026-12-25"
+    date2 = "2026-07-15"
+    r1 = client.post("/api/optimize", json={"scenario": "normal", "date": date1}).json()
+    r2 = client.post("/api/optimize", json={"scenario": "normal", "date": date2}).json()
+
+    # Forecast solar generation differs between winter and monsoon
+    solar1 = sum(p["solar_kw"] for p in r1["forecast"]["forecast"])
+    solar2 = sum(p["solar_kw"] for p in r2["forecast"]["forecast"])
+    assert solar1 != pytest.approx(solar2, rel=0.05)
+
+    # Battery schedules and SoC schedules adapt dynamically
+    b1 = [r["battery_kw"] for r in r1["dispatch"]["dispatch"]]
+    b2 = [r["battery_kw"] for r in r2["dispatch"]["dispatch"]]
+    assert b1 != b2
+
+    # Cost and ToD metrics differ
+    cost1 = r1["metrics"]["cost"]
+    cost2 = r2["metrics"]["cost"]
+    assert cost1 is not None and cost2 is not None
+    assert cost1["total_grid_cost_rs"] != pytest.approx(cost2["total_grid_cost_rs"], rel=0.05)
+    assert cost1["savings_rs"] != pytest.approx(cost2["savings_rs"], rel=0.05)
+
+
+@pytest.mark.real
+def test_real_scenarios_compare_runs_optimization(client, real_mode):
+    """GET /api/scenarios/compare runs all scenarios from run_scenarios.py."""
+    r = client.get("/api/scenarios/compare")
+    assert r.status_code == 200
+    rows = r.json()["rows"]
+    assert len(rows) == 5
+    by_sc = {row["scenario"]: row for row in rows}
+    assert "normal" in by_sc and "peak_demand" in by_sc and "high_wind" in by_sc
+    # In real optimization, peak_demand has higher grid cost than high_wind
+    assert by_sc["peak_demand"]["total_grid_cost_rs"] > by_sc["high_wind"]["total_grid_cost_rs"]
+    # All scenarios validated
+    assert all(row["validation"] == "PASS" for row in rows)
+
+

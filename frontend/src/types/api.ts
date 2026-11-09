@@ -10,6 +10,8 @@ export interface Meta {
   optimization_source: 'pypsa' | 'mock' | null;
   generated_at: string;
   warnings: string[];
+  date?: string | null;
+  note?: string | null;
 }
 
 export interface ForecastPoint {
@@ -39,6 +41,8 @@ export interface ForecastResponse {
   forecast: ForecastPoint[];
   scenario: ScenarioId;
   meta: Meta;
+  date?: string | null;
+  note?: string | null;
 }
 
 export interface DispatchResponse {
@@ -86,6 +90,37 @@ export interface ScenarioInfo {
   id: ScenarioId;
   label: string;
   description: string;
+}
+
+/** Shape of cost figures returned by the backend /api/metrics .cost field. */
+export interface CostMetrics {
+  total_grid_cost_rs: number;
+  grid_only_cost_rs: number;
+  baseline_cost_rs: number;
+  savings_rs: number;
+  savings_percent: number;
+  average_cost_rs_per_kwh_served: number;
+  grid_only_average_cost_rs_per_kwh: number;
+  label: string;
+}
+
+export interface ScenarioSummaryRow {
+  scenario: ScenarioId;
+  label: string;
+  renewable_penetration_percent: number;
+  grid_dependency_percent: number;
+  curtailment_percent: number;
+  battery_utilization_percent: number;
+  estimated_co2_avoided_kg: number;
+  total_grid_cost_rs: number;
+  grid_only_cost_rs: number;
+  savings_rs: number;
+  savings_percent: number;
+  validation?: string;
+}
+
+export interface ScenarioSummaryResponse {
+  rows: ScenarioSummaryRow[];
 }
 
 export interface OptimizeResponse {
