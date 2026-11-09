@@ -11,9 +11,9 @@ router = APIRouter(tags=["metrics"])
 
 
 @router.get("/metrics", response_model=MetricsResponse)
-def get_metrics(scenario: Scenario | None = None) -> MetricsResponse:
+def get_metrics(scenario: Scenario | None = None, date: str | None = None) -> MetricsResponse:
     try:
-        return service.get_metrics(scenario)
+        return service.get_metrics(scenario, date=date)
     except (ForecastError, OptimizationError) as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 

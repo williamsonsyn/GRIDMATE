@@ -51,7 +51,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 export const api = {
   health: () => request<HealthResponse>('/api/health'),
   scenarios: () => request<ScenarioInfo[]>('/api/scenarios'),
-  scenariosSummary: () => request<ScenarioSummaryResponse>('/api/scenarios/summary'),
+  scenariosSummary: (date?: string | null) =>
+    request<ScenarioSummaryResponse>(date ? `/api/scenarios/summary?date=${encodeURIComponent(date)}` : '/api/scenarios/summary'),
   assets: () => request<AssetsResponse>('/api/assets'),
   setScenario: (scenario: ScenarioId, date?: string | null) =>
     request<ForecastResponse>('/api/scenario', {

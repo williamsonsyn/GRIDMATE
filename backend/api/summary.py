@@ -12,13 +12,13 @@ router = APIRouter(tags=["scenarios"])
 
 
 @router.get("/scenarios/summary", response_model=ScenarioSummaryResponse)
-def get_scenarios_summary() -> ScenarioSummaryResponse:
+def get_scenarios_summary(date: str | None = None) -> ScenarioSummaryResponse:
     """Run all scenarios through the full pipeline and return a comparison matrix."""
     rows = []
     for sc_info in SCENARIOS:
         sc = Scenario(sc_info.id)
         try:
-            result = service.run(sc)
+            result = service.run(sc, date=date)
             m = result.metrics.metrics
             cost = result.metrics.cost or {}
             rows.append(

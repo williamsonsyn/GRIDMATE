@@ -9,8 +9,8 @@ router = APIRouter(tags=["dispatch"])
 
 
 @router.get("/dispatch", response_model=DispatchResponse)
-def get_dispatch(scenario: Scenario | None = None) -> DispatchResponse:
+def get_dispatch(scenario: Scenario | None = None, date: str | None = None) -> DispatchResponse:
     try:
-        return service.get_dispatch(scenario)
+        return service.get_dispatch(scenario, date=date)
     except (ForecastError, OptimizationError) as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc

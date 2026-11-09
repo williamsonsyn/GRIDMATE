@@ -121,12 +121,12 @@ export function useSimulation() {
   const openComparison = useCallback(async () => {
     patch({ comparisonOpen: true, comparisonLoading: true, comparisonError: null });
     try {
-      const data = await api.scenariosSummary();
+      const data = await api.scenariosSummary(state.selectedDate);
       patch({ comparisonRows: data.rows, comparisonLoading: false });
     } catch (e) {
       patch({ comparisonLoading: false, comparisonError: toUiError(e).message });
     }
-  }, [patch]);
+  }, [patch, state.selectedDate]);
 
   return {
     state,
