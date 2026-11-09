@@ -1,0 +1,130 @@
+{
+  "metadata": {
+    "project": "GridMate",
+    "module": "forecasting_real_data",
+    "version": "2.0",
+    "dataset_provenance": "AI-generated synthetic demonstration data; not actual measured Lonavala energy data",
+    "generated_at": "2026-11-09T08:51:31.883182+00:00",
+    "model_type": "XGBoost Regressor",
+    "hyperparameters": {
+      "objective": "reg:squarederror",
+      "n_estimators": 150,
+      "learning_rate": 0.05,
+      "max_depth": 5,
+      "subsample": 0.85,
+      "colsample_bytree": 0.85,
+      "random_state": 42,
+      "n_jobs": -1
+    }
+  },
+  "targets": {
+    "solar_kw": {
+      "model_name": "solar",
+      "artifact_file": "solar_model.joblib",
+      "features": [
+        "solar_irradiance",
+        "solar_irradiance_lag_1",
+        "cloud_cover",
+        "temperature",
+        "humidity",
+        "hour",
+        "month",
+        "day_of_year"
+      ],
+      "train_samples": 6988,
+      "test_samples": 1748,
+      "train_horizon": "2025-01-02 00:00:00 to 2025-10-20 03:00:00",
+      "test_horizon": "2025-10-20 04:00:00 to 2025-12-31 23:00:00",
+      "train_metrics": {
+        "mae": 9.3563,
+        "rmse": 20.1472,
+        "r2": 0.9772
+      },
+      "test_metrics": {
+        "mae": 8.0997,
+        "rmse": 20.7462,
+        "r2": 0.9762
+      }
+    },
+    "wind_kw": {
+      "model_name": "wind",
+      "artifact_file": "wind_model.joblib",
+      "features": [
+        "wind_speed",
+        "wind_speed_lag_1",
+        "wind_direction",
+        "pressure",
+        "temperature",
+        "hour",
+        "month"
+      ],
+      "train_samples": 6988,
+      "test_samples": 1748,
+      "train_horizon": "2025-01-02 00:00:00 to 2025-10-20 03:00:00",
+      "test_horizon": "2025-10-20 04:00:00 to 2025-12-31 23:00:00",
+      "train_metrics": {
+        "mae": 8.393,
+        "rmse": 17.849,
+        "r2": 0.8223
+      },
+      "test_metrics": {
+        "mae": 22.3448,
+        "rmse": 48.9429,
+        "r2": 0.152
+      }
+    },
+    "hydro_kw": {
+      "model_name": "hydro",
+      "artifact_file": "hydro_model.joblib",
+      "features": [
+        "water_flow",
+        "water_flow_lag_1",
+        "rainfall",
+        "month",
+        "day_of_year"
+      ],
+      "train_samples": 6988,
+      "test_samples": 1748,
+      "train_horizon": "2025-01-02 00:00:00 to 2025-10-20 03:00:00",
+      "test_horizon": "2025-10-20 04:00:00 to 2025-12-31 23:00:00",
+      "train_metrics": {
+        "mae": 4.2441,
+        "rmse": 7.4172,
+        "r2": 0.9956
+      },
+      "test_metrics": {
+        "mae": 13.0084,
+        "rmse": 15.0704,
+        "r2": -0.7383
+      }
+    },
+    "load_kw": {
+      "model_name": "load",
+      "artifact_file": "load_model.joblib",
+      "features": [
+        "historical_load_lag_1",
+        "historical_load_lag_24",
+        "temperature",
+        "humidity",
+        "hour",
+        "day_of_week",
+        "month",
+        "is_weekend"
+      ],
+      "train_samples": 6988,
+      "test_samples": 1748,
+      "train_horizon": "2025-01-02 00:00:00 to 2025-10-20 03:00:00",
+      "test_horizon": "2025-10-20 04:00:00 to 2025-12-31 23:00:00",
+      "train_metrics": {
+        "mae": 16.0404,
+        "rmse": 20.3684,
+        "r2": 0.9773
+      },
+      "test_metrics": {
+        "mae": 17.7761,
+        "rmse": 23.0696,
+        "r2": 0.9704
+      }
+    }
+  }
+}

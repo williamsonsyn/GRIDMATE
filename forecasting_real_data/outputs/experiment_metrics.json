@@ -1,0 +1,124 @@
+{
+  "metadata": {
+    "project": "GridMate",
+    "module": "forecasting_real_data",
+    "experiment_name": "Wind & Hydro Cyclical Feature Engineering",
+    "dataset_provenance": "AI-generated synthetic demonstration data; not actual measured Lonavala energy data",
+    "generated_at": "2026-11-09T09:27:33.011215+00:00",
+    "model_type": "XGBoost Regressor",
+    "hyperparameters": {
+      "objective": "reg:squarederror",
+      "n_estimators": 150,
+      "learning_rate": 0.05,
+      "max_depth": 5,
+      "subsample": 0.85,
+      "colsample_bytree": 0.85,
+      "random_state": 42,
+      "n_jobs": -1
+    },
+    "disclaimer": "Improvements observed in this experiment are derived from synthetic demonstration data and do not constitute proof of real-world forecasting accuracy."
+  },
+  "experiments": {
+    "wind": {
+      "target": "wind_kw",
+      "baseline_artifact": "wind_model.joblib",
+      "candidate_artifact": "wind_experiment_model.joblib",
+      "baseline_features": [
+        "wind_speed",
+        "wind_speed_lag_1",
+        "wind_direction",
+        "pressure",
+        "temperature",
+        "hour",
+        "month"
+      ],
+      "experiment_features": [
+        "wind_speed",
+        "wind_speed_lag_1",
+        "wind_direction_sin",
+        "wind_direction_cos",
+        "pressure",
+        "temperature",
+        "hour_sin",
+        "hour_cos",
+        "month_sin",
+        "month_cos"
+      ],
+      "train_samples": 6988,
+      "test_samples": 1748,
+      "train_horizon": "2025-01-02 00:00:00 to 2025-10-20 03:00:00",
+      "test_horizon": "2025-10-20 04:00:00 to 2025-12-31 23:00:00",
+      "baseline_test_metrics": {
+        "mae": 22.3448,
+        "rmse": 48.9429,
+        "r2": 0.152
+      },
+      "experiment_train_metrics": {
+        "mae": 8.1615,
+        "rmse": 17.1817,
+        "r2": 0.8353
+      },
+      "experiment_test_metrics": {
+        "mae": 21.3911,
+        "rmse": 45.4788,
+        "r2": 0.2678
+      },
+      "test_comparison": {
+        "mae_delta": -0.9537,
+        "rmse_delta": -3.4641,
+        "r2_delta": 0.1158,
+        "mae_improved": true,
+        "rmse_improved": true,
+        "r2_improved": true
+      }
+    },
+    "hydro": {
+      "target": "hydro_kw",
+      "baseline_artifact": "hydro_model.joblib",
+      "candidate_artifact": "hydro_experiment_model.joblib",
+      "baseline_features": [
+        "water_flow",
+        "water_flow_lag_1",
+        "rainfall",
+        "month",
+        "day_of_year"
+      ],
+      "experiment_features": [
+        "water_flow",
+        "water_flow_lag_1",
+        "rainfall",
+        "month_sin",
+        "month_cos",
+        "day_of_year_sin",
+        "day_of_year_cos"
+      ],
+      "train_samples": 6988,
+      "test_samples": 1748,
+      "train_horizon": "2025-01-02 00:00:00 to 2025-10-20 03:00:00",
+      "test_horizon": "2025-10-20 04:00:00 to 2025-12-31 23:00:00",
+      "baseline_test_metrics": {
+        "mae": 13.0084,
+        "rmse": 15.0704,
+        "r2": -0.7383
+      },
+      "experiment_train_metrics": {
+        "mae": 4.0116,
+        "rmse": 7.309,
+        "r2": 0.9957
+      },
+      "experiment_test_metrics": {
+        "mae": 20.7047,
+        "rmse": 27.8545,
+        "r2": -4.9384
+      },
+      "test_comparison": {
+        "mae_delta": 7.6963,
+        "rmse_delta": 12.7841,
+        "r2_delta": -4.2001,
+        "mae_improved": false,
+        "rmse_improved": false,
+        "r2_improved": false
+      }
+    }
+  }
+}
