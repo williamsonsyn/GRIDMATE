@@ -1,0 +1,1203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GridMate — Lonavala Digital Twin & Energy GIS</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E⚡%3C/text%3E%3C/svg%3E" />
+
+  <!-- MapLibre GL JS -->
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" />
+  <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
+
+  <!-- GridMate Dispatch Engine -->
+  <script src="applyDispatch.js"></script>
+
+  <style>
+    :root {
+      --bg-dark: #0f172a;
+      --panel-bg: rgba(15, 23, 42, 0.94);
+      --card-bg: #1e293b;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent: #38bdf8;
+      --border-color: #334155;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body, html {
+      width: 100%;
+      height: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg-dark);
+      color: var(--text-main);
+      overflow: hidden;
+    }
+
+    #map {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: var(--bg-dark);
+      z-index: 1;
+    }
+
+    /* Floating Header & Controls */
+    .top-bar {
+      position: absolute;
+      top: 16px;
+      left: 20px;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--panel-bg);
+      backdrop-filter: blur(8px);
+      padding: 10px 18px;
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+    }
+
+    .brand-title {
+      font-size: 1.12rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .brand-title span {
+      color: var(--accent);
+    }
+
+    .sim-badge {
+      font-size: 0.70rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      background: #dc2626;
+      color: #ffffff;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      box-shadow: 0 0 10px rgba(220, 38, 38, 0.5);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.75; }
+    }
+
+    .view-btn {
+      background: var(--card-bg);
+      color: #e2e8f0;
+      border: 1px solid var(--border-color);
+      padding: 5px 12px;
+      border-radius: 8px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .view-btn:hover {
+      background: #334155;
+      border-color: var(--accent);
+      color: #ffffff;
+    }
+
+    /* Sidebar Control Panel */
+    .panel-wrapper {
+      position: absolute;
+      top: 16px;
+      right: 20px;
+      z-index: 10;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .panel-wrapper.collapsed {
+      transform: translateX(calc(100% - 44px));
+    }
+
+    .panel-toggle-btn {
+      background: var(--panel-bg);
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--border-color);
+      color: #cbd5e1;
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 1rem;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.4);
+      transition: all 0.2s ease;
+    }
+
+    .panel-toggle-btn:hover {
+      background: var(--card-bg);
+      color: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .control-panel {
+      width: 350px;
+      max-height: calc(100vh - 32px);
+      background: var(--panel-bg);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      overflow-y: auto;
+      box-shadow: 0 20px 30px rgba(0,0,0,0.5);
+    }
+
+    .control-panel::-webkit-scrollbar {
+      width: 6px;
+    }
+    .control-panel::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 4px;
+    }
+
+    .section-title {
+      font-size: 0.82rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--accent);
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* Basemap Switcher */
+    .basemap-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 6px;
+    }
+
+    .base-btn {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      color: #94a3b8;
+      padding: 7px 4px;
+      border-radius: 8px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s ease;
+    }
+
+    .base-btn:hover {
+      color: #ffffff;
+      border-color: #64748b;
+    }
+
+    .base-btn.active {
+      background: #0284c7;
+      border-color: var(--accent);
+      color: #ffffff;
+      box-shadow: 0 0 8px rgba(56, 189, 248, 0.35);
+    }
+
+    .select-wrap select {
+      width: 100%;
+      background: var(--card-bg);
+      color: #fff;
+      border: 1px solid var(--border-color);
+      padding: 9px 12px;
+      border-radius: 8px;
+      font-size: 0.90rem;
+      font-weight: 500;
+      cursor: pointer;
+      outline: none;
+    }
+
+    .select-wrap select:focus {
+      border-color: var(--accent);
+    }
+
+    .scenario-desc {
+      font-size: 0.76rem;
+      color: var(--text-muted);
+      margin-top: 6px;
+      line-height: 1.35;
+    }
+
+    /* Metrics Grid */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .metric-card {
+      background: var(--card-bg);
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .metric-card.full-width {
+      grid-column: span 2;
+    }
+
+    .metric-label {
+      font-size: 0.70rem;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .metric-val {
+      font-size: 1.10rem;
+      font-weight: 700;
+      color: #ffffff;
+    }
+
+    .metric-val.green { color: #22c55e; }
+    .metric-val.amber { color: #f59e0b; }
+    .metric-val.cyan { color: #06b6d4; }
+    .metric-val.purple { color: #a855f7; }
+    .metric-val.red { color: #ef4444; }
+
+    /* Collapsible Assets List */
+    .collapsible-header {
+      cursor: pointer;
+      user-select: none;
+      padding: 4px 0;
+    }
+
+    .collapsible-header:hover {
+      color: #ffffff;
+    }
+
+    .assets-list-container {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 220px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .assets-list-container::-webkit-scrollbar {
+      width: 4px;
+    }
+    .assets-list-container::-webkit-scrollbar-thumb {
+      background: #475569;
+      border-radius: 4px;
+    }
+
+    .asset-item {
+      background: var(--card-bg);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+      padding: 8px 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .asset-item:hover {
+      background: #334155;
+      border-color: var(--accent);
+      transform: translateX(2px);
+    }
+
+    .asset-item-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .asset-name {
+      font-size: 0.80rem;
+      font-weight: 600;
+      color: #e2e8f0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 170px;
+    }
+
+    .asset-sub {
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      text-transform: capitalize;
+    }
+
+    .asset-item-right {
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    .asset-output {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #38bdf8;
+    }
+
+    /* Layer Toggles */
+    .layer-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 5px 0;
+      font-size: 0.82rem;
+      color: #e2e8f0;
+    }
+
+    .layer-label-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .layer-color-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    /* Switch toggle */
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 36px;
+      height: 20px;
+    }
+
+    .switch input { opacity: 0; width: 0; height: 0; }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #475569;
+      transition: .3s;
+      border-radius: 20px;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 14px;
+      width: 14px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .3s;
+      border-radius: 50%;
+    }
+
+    input:checked + .slider { background-color: var(--accent); }
+    input:checked + .slider:before { transform: translateX(16px); }
+
+    /* Legend */
+    .legend-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      font-size: 0.76rem;
+      color: var(--text-muted);
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      border: 1px solid rgba(255,255,255,0.6);
+    }
+
+    /* Bottom-Center 24-Hour Time Slider Control */
+    .time-control-bar {
+      position: absolute;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: var(--panel-bg);
+      backdrop-filter: blur(14px);
+      padding: 10px 22px;
+      border-radius: 16px;
+      border: 1px solid var(--border-color);
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.55);
+    }
+
+    .play-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: #0284c7;
+      border: 1px solid var(--accent);
+      color: #ffffff;
+      font-size: 1.05rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 12px rgba(2, 132, 199, 0.4);
+    }
+
+    .play-btn:hover:not(:disabled) {
+      background: #0369a1;
+      transform: scale(1.05);
+    }
+
+    .play-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    .slider-container {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      width: 320px;
+    }
+
+    .slider-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.78rem;
+    }
+
+    .slider-title {
+      font-weight: 600;
+      color: #cbd5e1;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .time-label {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-weight: 700;
+      font-size: 0.96rem;
+      color: var(--accent);
+      background: rgba(56, 189, 248, 0.12);
+      padding: 2px 8px;
+      border-radius: 6px;
+      border: 1px solid rgba(56, 189, 248, 0.3);
+    }
+
+    .time-slider-input {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: #334155;
+      outline: none;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .time-slider-input:disabled {
+      cursor: not-allowed;
+      opacity: 0.4;
+    }
+
+    .time-slider-input::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--accent);
+      cursor: pointer;
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.7);
+      border: 2px solid #ffffff;
+      transition: transform 0.15s ease;
+    }
+
+    .time-slider-input::-webkit-slider-thumb:hover {
+      transform: scale(1.15);
+    }
+
+    .time-slider-input::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--accent);
+      cursor: pointer;
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.7);
+      border: 2px solid #ffffff;
+    }
+
+    /* Attribution Bar */
+    .custom-attribution {
+      position: absolute;
+      bottom: 8px;
+      left: 12px;
+      z-index: 5;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(6px);
+      padding: 4px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+      font-size: 0.68rem;
+      color: #94a3b8;
+    }
+
+    .custom-attribution a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    .footer-note {
+      font-size: 0.68rem;
+      color: #64748b;
+      line-height: 1.35;
+      text-align: center;
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Map Container -->
+  <div id="map"></div>
+
+  <!-- Header Banner -->
+  <div class="top-bar">
+    <div class="brand-title">⚡ GridMate <span>Digital Twin</span></div>
+    <div class="sim-badge">Simulated prototype assets</div>
+    <button id="btn-zoom-assets" class="view-btn" title="Focus on Lonavala-Khandala energy cluster" aria-label="Zoom to Assets">
+      📍 Zoom to Assets
+    </button>
+    <button id="btn-zoom-context" class="view-btn" title="Fit to wider regional context" aria-label="Regional View">
+      🗺️ Regional View
+    </button>
+  </div>
+
+  <!-- Custom Attribution -->
+  <div id="attribution-bar" class="custom-attribution">
+    © <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap contributors</a>
+  </div>
+
+  <!-- Bottom-Center 24-Hour Time Slider Control -->
+  <div class="time-control-bar" id="time-control-bar">
+    <button id="btn-play-pause" class="play-btn" title="Play / Pause simulation" aria-label="Play / Pause">▶</button>
+    <div class="slider-container">
+      <div class="slider-header">
+        <span class="slider-title">24-Hour Timeline</span>
+        <span id="time-label" class="time-label">00:00</span>
+      </div>
+      <input type="range" id="time-slider" class="time-slider-input" min="0" max="23" value="0" step="1" />
+    </div>
+  </div>
+
+  <!-- Sidebar Control Panel -->
+  <div class="panel-wrapper" id="panel-wrapper">
+    <button id="panel-toggle" class="panel-toggle-btn" title="Collapse / Expand Control Panel" aria-label="Toggle control panel">▶</button>
+    <div class="control-panel">
+
+      <!-- Basemap Switcher -->
+      <div>
+        <div class="section-title">Basemap Imagery</div>
+        <div class="basemap-group">
+          <button type="button" class="base-btn active" data-base="streets">Streets</button>
+          <button type="button" class="base-btn" data-base="satellite">Satellite</button>
+          <button type="button" class="base-btn" data-base="plain_dark">Plain Dark</button>
+        </div>
+      </div>
+
+      <!-- Scenario Simulation -->
+      <div>
+        <div class="section-title">Scenario Simulation</div>
+        <div class="select-wrap">
+          <select id="scenario-selector">
+            <option value="sample_dispatch" selected>24-Hour Normal Dispatch (Sample)</option>
+            <option value="normal">Normal Day (Baseline Snapshot)</option>
+            <option value="cloudy">Cloudy Day (Battery Discharge & Grid)</option>
+            <option value="heavy_monsoon">Heavy Monsoon (Max Hydro & Battery Charge)</option>
+            <option value="high_wind">High Wind (Peak Khandala Wind)</option>
+            <option value="peak_demand">Peak Demand (Evening 1.25 MW Hub)</option>
+          </select>
+        </div>
+        <div id="scenario-desc" class="scenario-desc"></div>
+      </div>
+
+      <!-- Energy Dispatch Metrics -->
+      <div>
+        <div class="section-title">Energy Dispatch Metrics</div>
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <div class="metric-label">Renewable Pen.</div>
+            <div id="m-renewable" class="metric-val green">--%</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Grid Dependency</div>
+            <div id="m-grid" class="metric-val">--%</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Battery Mode</div>
+            <div id="m-battery" class="metric-val cyan">--</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Battery SOC</div>
+            <div id="m-soc" class="metric-val purple">-- kWh</div>
+          </div>
+          <div class="metric-card full-width">
+            <div class="metric-label">Supply vs Load Balance</div>
+            <div id="m-balance" class="metric-val purple" style="font-size: 0.90rem;">-- kW gen / -- kW load</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Collapsible Assets List -->
+      <div>
+        <div class="section-title collapsible-header" id="assets-list-header">
+          <span>Assets Directory (<span id="asset-count">0</span>)</span>
+          <span id="assets-chevron">▼</span>
+        </div>
+        <div id="assets-list" class="assets-list-container">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+
+      <!-- Layer Toggles -->
+      <div>
+        <div class="section-title">GIS Layers</div>
+        <div class="layer-item">
+          <div class="layer-label-group">
+            <span class="layer-color-dot" style="background:#f59e0b;"></span>
+            <span>Energy Assets</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="toggle-assets" checked />
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="layer-item">
+          <div class="layer-label-group">
+            <span class="layer-color-dot" style="background:#6366f1;"></span>
+            <span>Energy Flow Lines <span style="font-size:0.75em;opacity:0.65;">(schematic)</span></span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="toggle-flow" checked />
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="layer-item">
+          <div class="layer-label-group">
+            <span class="layer-color-dot" style="background:#8b5cf6;"></span>
+            <span>Demand Zones</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="toggle-demand" checked />
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="layer-item">
+          <div class="layer-label-group">
+            <span class="layer-color-dot" style="background:#38bdf8;"></span>
+            <span>Water Bodies (OSM)</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="toggle-water" checked />
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="layer-item">
+          <div class="layer-label-group">
+            <span class="layer-color-dot" style="background:#cbd5e1;"></span>
+            <span>Road Network (OSM)</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="toggle-roads" checked />
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="layer-item">
+          <div class="layer-label-group">
+            <span class="layer-color-dot" style="background:#a855f7;"></span>
+            <span>Power Lines (OSM)</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="toggle-power" />
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="layer-item">
+          <div class="layer-label-group">
+            <span class="layer-color-dot" style="background:#10b981;"></span>
+            <span>3D Terrain (Terrarium DEM)</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="toggle-terrain" />
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Asset Types Legend -->
+      <div>
+        <div class="section-title">Asset Types Legend</div>
+        <div class="legend-grid">
+          <div class="legend-item"><span class="legend-dot" style="background:#f59e0b;"></span> Solar (300 kW)</div>
+          <div class="legend-item"><span class="legend-dot" style="background:#06b6d4;"></span> Wind (150-200 kW)</div>
+          <div class="legend-item"><span class="legend-dot" style="background:#3b82f6;"></span> Hydro (400 kW)</div>
+          <div class="legend-item"><span class="legend-dot" style="background:#10b981;"></span> Battery (250 kW / 1 MWh)</div>
+          <div class="legend-item"><span class="legend-dot" style="background:#ef4444;"></span> Grid Intertie (1.5 MW)</div>
+          <div class="legend-item"><span class="legend-dot" style="background:#8b5cf6;"></span> Demand Hub (1.2 MW)</div>
+        </div>
+      </div>
+
+      <!-- Demand Zones Color Legend -->
+      <div>
+        <div class="section-title">Demand Zone Load Scale</div>
+        <div class="legend-grid">
+          <div class="legend-item"><span class="legend-dot" style="background:#38bdf8;"></span> Low (&lt;120 kW)</div>
+          <div class="legend-item"><span class="legend-dot" style="background:#818cf8;"></span> Mod (120-250 kW)</div>
+          <div class="legend-item"><span class="legend-dot" style="background:#f59e0b;"></span> High (250-400 kW)</div>
+          <div class="legend-item"><span class="legend-dot" style="background:#ef4444;"></span> Peak (&ge;400 kW)</div>
+        </div>
+      </div>
+
+      <div class="footer-note">
+        Regional Context: [73.25, 18.62] to [73.62, 18.90]<br/>
+        Asset Cluster: [73.33, 18.68] to [73.48, 18.81]<br/>
+        All energy assets and dispatch data are simulated for research demonstration.
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import {
+      init,
+      ASSET_TYPE_COLORS,
+      formatTimeLabel,
+      computeMetrics
+    } from './gridmateMap.js';
+
+    let mapController = null;
+    let currentScenarioData = null;
+    let currentDispatchArray = [];
+    let currentTimeIndex = 0;
+    let currentAppliedAssets = null;
+    let currentBasemap = 'streets';
+    let isTerrainActive = false;
+
+    // Playback state
+    let isPlaying = false;
+    let playTimer = null;
+
+    function showPageError(msg) {
+      console.error("Initialization error:", msg);
+      const mapEl = document.getElementById('map');
+      if (mapEl && !mapEl.querySelector('.gridmate-error-overlay')) {
+        const safeMsg = (msg || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        mapEl.innerHTML = `
+          <div class="gridmate-error-overlay" style="display:flex; flex-direction:column; align-items:center; justify-content:center; width:100%; height:100%; background:#0f172a; color:#f8fafc; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding:24px; box-sizing:border-box; text-align:center; z-index:100;">
+            <div style="max-width:540px; background:rgba(30,41,59,0.95); border:1px solid #ef4444; border-radius:12px; padding:28px 24px; box-shadow:0 10px 30px rgba(0,0,0,0.6);">
+              <div style="font-size:2.2rem; margin-bottom:12px;">⚠️</div>
+              <h2 style="color:#ef4444; font-size:1.25rem; font-weight:700; margin-bottom:12px;">Initialization Error</h2>
+              <p style="color:#cbd5e1; font-size:0.95rem; line-height:1.5; margin-bottom:16px;">The map could not load because a required core data file failed to load or is invalid:</p>
+              <div style="background:#090d16; border:1px solid #334155; border-radius:6px; padding:12px; font-family:monospace; font-size:0.85rem; color:#f87171; word-break:break-all;">
+                ${safeMsg}
+              </div>
+              <p style="color:#94a3b8; font-size:0.8rem; margin-top:16px;">Check the server log or run data generation scripts in digital-twin/.</p>
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    async function initApp() {
+      try {
+        const fetchCoreDispatch = async () => {
+          const dispatchFile = '../data/sample_dispatch.json';
+          try {
+            const res = await fetch(dispatchFile);
+            if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText || 'Not Found'}`);
+            const text = await res.text();
+            if (!text || !text.trim()) throw new Error('File is empty (0 bytes)');
+            return JSON.parse(text);
+          } catch (e) {
+            throw new Error(`Failed to load core file: data/sample_dispatch.json (${e.message})`);
+          }
+        };
+
+        // Load initial scenario data in parallel with controller setup
+        const [controller, sampleDispatch] = await Promise.all([
+          init('map', {
+            basePath: '../',
+            basemap: 'streets',
+            onAssetClick: (feat, coords) => {
+              // Asset click hooked through controller
+            }
+          }),
+          fetchCoreDispatch()
+        ]);
+
+        mapController = controller;
+        currentScenarioData = sampleDispatch;
+        currentDispatchArray = Array.isArray(sampleDispatch.dispatch) && sampleDispatch.dispatch.length > 0
+          ? sampleDispatch.dispatch
+          : [sampleDispatch];
+
+        updateSliderBounds();
+        setupEvents();
+
+        // Immediate application of timestep 0
+        applyTimeStep(0);
+      } catch (err) {
+        showPageError(err.message || String(err));
+      }
+    }
+
+    function updateSliderBounds() {
+      const slider = document.getElementById('time-slider');
+      const playBtn = document.getElementById('btn-play-pause');
+      const sliderTitle = document.querySelector('.slider-title');
+      if (!slider || !playBtn) return;
+
+      if (!currentDispatchArray || currentDispatchArray.length <= 1) {
+        slider.disabled = true;
+        slider.min = "0";
+        slider.max = "0";
+        slider.value = "0";
+        playBtn.disabled = true;
+        playBtn.title = "Single timestamp scenario (playback disabled)";
+        playBtn.setAttribute('aria-label', 'Playback unavailable for single-snapshot scenario');
+        const ts = (currentDispatchArray && currentDispatchArray[0] && currentDispatchArray[0].timestamp) || '';
+        const timeStr = ts.includes('T') ? ts.split('T')[1].substring(0, 5) : (ts || '--:--');
+        if (sliderTitle) sliderTitle.textContent = 'Snapshot at ' + timeStr;
+      } else {
+        slider.disabled = false;
+        slider.min = "0";
+        slider.max = String(currentDispatchArray.length - 1);
+        slider.value = String(currentTimeIndex);
+        playBtn.disabled = false;
+        playBtn.title = "Play / Pause 24-hour simulation";
+        playBtn.setAttribute('aria-label', 'Play / Pause');
+        if (sliderTitle) sliderTitle.textContent = '24-Hour Timeline';
+      }
+    }
+
+    async function loadScenario(scenarioId) {
+      try {
+        stopPlayback();
+
+        let scenarioFile = '';
+        if (scenarioId === 'sample_dispatch') {
+          scenarioFile = '../data/sample_dispatch.json';
+        } else {
+          scenarioFile = `../data/scenarios/${scenarioId}.json`;
+        }
+
+        const res = await fetch(scenarioFile);
+        if (!res.ok) throw new Error(`HTTP ${res.status} loading scenario ${scenarioId}`);
+        currentScenarioData = await res.json();
+
+        currentDispatchArray = Array.isArray(currentScenarioData.dispatch) && currentScenarioData.dispatch.length > 0
+          ? currentScenarioData.dispatch
+          : [currentScenarioData];
+
+        updateSliderBounds();
+
+        const descElem = document.getElementById('scenario-desc');
+        if (descElem) {
+          descElem.innerText = currentScenarioData.description || currentScenarioData.note || '';
+        }
+
+        currentTimeIndex = 0;
+        applyTimeStep(0);
+      } catch (e) {
+        console.error("Error loading scenario:", e);
+      }
+    }
+
+    function applyTimeStep(index) {
+      if (!currentScenarioData || !currentDispatchArray || currentDispatchArray.length === 0) return;
+
+      const idx = Math.max(0, Math.min(index, currentDispatchArray.length - 1));
+      currentTimeIndex = idx;
+
+      const slider = document.getElementById('time-slider');
+      if (slider && Number(slider.value) !== idx) {
+        slider.value = String(idx);
+      }
+
+      // Delegate update to gridmateMap controller
+      if (mapController) {
+        const result = mapController.setDispatch(currentScenarioData, idx);
+        if (result) {
+          currentAppliedAssets = result.appliedAssets;
+          const timeStr = formatTimeLabel(result.dispatchRow.timestamp);
+          const timeLabel = document.getElementById('time-label');
+          if (timeLabel) timeLabel.innerText = timeStr;
+
+          updateMetricsPanel(result.dispatchRow);
+          renderAssetsList(result.appliedAssets);
+        }
+      }
+    }
+
+    function updateMetricsPanel(row) {
+      const metrics = computeMetrics(row);
+
+      const renElem = document.getElementById('m-renewable');
+      if (renElem) {
+        renElem.innerText = `${metrics.rePct.toFixed(1)}%`;
+        if (metrics.rePct >= 90) renElem.className = 'metric-val green';
+        else if (metrics.rePct >= 70) renElem.className = 'metric-val amber';
+        else renElem.className = 'metric-val red';
+      }
+
+      const gridElem = document.getElementById('m-grid');
+      if (gridElem) {
+        gridElem.innerText = `${metrics.gridPct.toFixed(1)}%`;
+        gridElem.className = metrics.gridPct > 20 ? 'metric-val red' : (metrics.gridPct > 0 ? 'metric-val amber' : 'metric-val green');
+      }
+
+      const batElem = document.getElementById('m-battery');
+      if (batElem) batElem.innerText = metrics.batteryMode;
+
+      const socElem = document.getElementById('m-soc');
+      if (socElem) {
+        socElem.innerText = metrics.batterySocKwh !== undefined ? `${Number(metrics.batterySocKwh).toFixed(0)} kWh` : 'N/A';
+      }
+
+      const balElem = document.getElementById('m-balance');
+      if (balElem) {
+        balElem.innerText = `${metrics.genTotal.toFixed(0)} kW gen / ${metrics.loadKw.toFixed(0)} kW load`;
+      }
+    }
+
+    function renderAssetsList(appliedFc) {
+      const listContainer = document.getElementById('assets-list');
+      const countElem = document.getElementById('asset-count');
+      if (!listContainer || !appliedFc) return;
+
+      const features = appliedFc.features || [];
+      if (countElem) countElem.innerText = String(features.length);
+
+      listContainer.innerHTML = '';
+      features.forEach(f => {
+        const p = f.properties || {};
+        const dotColor = ASSET_TYPE_COLORS[p.type] || '#94a3b8';
+        const item = document.createElement('div');
+        item.className = 'asset-item';
+        item.title = `Click to zoom to ${p.name}`;
+
+        const status = p.status || 'idle';
+        const statusClass = `status-${status.toLowerCase().replace(/\s+/g, '_')}`;
+        const outputVal = p.forecast_output_kw !== undefined ? p.forecast_output_kw : 0;
+        const outputLabel = p.type === 'demand' ? `${outputVal} kW req` : `${outputVal} kW`;
+
+        item.innerHTML = `
+          <div class="asset-item-left">
+            <span class="legend-dot" style="background:${dotColor};"></span>
+            <div>
+              <div class="asset-name">${p.name}</div>
+              <div class="asset-sub">${p.type} &bull; ${p.capacity_kw} kW</div>
+            </div>
+          </div>
+          <div class="asset-item-right">
+            <div class="asset-output">${outputLabel}</div>
+            <span class="status-badge ${statusClass}" style="font-size:0.62rem; padding:1px 5px;">${status}</span>
+          </div>
+        `;
+
+        item.addEventListener('click', () => {
+          let targetFeature = f;
+          if (currentAppliedAssets && currentAppliedAssets.features) {
+            const matched = currentAppliedAssets.features.find(x => x.properties && x.properties.id === p.id);
+            if (matched) targetFeature = matched;
+          }
+          flyToAssetAndOpenPopup(targetFeature);
+        });
+
+        listContainer.appendChild(item);
+      });
+    }
+
+    function flyToAssetAndOpenPopup(feature) {
+      if (!feature || !feature.properties || !mapController) return;
+      mapController.flyToAsset(feature.properties.id);
+    }
+
+    function startPlayback() {
+      if (isPlaying || currentDispatchArray.length <= 1) return;
+      isPlaying = true;
+      document.getElementById('btn-play-pause').innerHTML = '❚❚';
+
+      playTimer = setInterval(() => {
+        const nextIdx = (currentTimeIndex + 1) % currentDispatchArray.length;
+        applyTimeStep(nextIdx);
+      }, 800);
+    }
+
+    function stopPlayback() {
+      isPlaying = false;
+      document.getElementById('btn-play-pause').innerHTML = '▶';
+      if (playTimer) {
+        clearInterval(playTimer);
+        playTimer = null;
+      }
+    }
+
+    function togglePlayback() {
+      if (isPlaying) {
+        stopPlayback();
+      } else {
+        startPlayback();
+      }
+    }
+
+    function updateAttributionText() {
+      const attrBar = document.getElementById('attribution-bar');
+      if (!attrBar) return;
+
+      let baseText = '© <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap contributors</a>';
+      if (currentBasemap === 'satellite') {
+        baseText = 'Imagery © Esri, Maxar, Earthstar Geographics | © <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap contributors</a>';
+      }
+
+      if (isTerrainActive) {
+        baseText += ' | Elevation data: Mapzen/AWS Terrain Tiles';
+      }
+
+      attrBar.innerHTML = baseText;
+    }
+
+    function switchBasemap(name) {
+      currentBasemap = name;
+      document.querySelectorAll('.base-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.base === name);
+      });
+
+      if (mapController) {
+        mapController.setBasemap(name);
+      }
+      updateAttributionText();
+    }
+
+    function setupEvents() {
+      // Zoom buttons
+      document.getElementById('btn-zoom-assets').addEventListener('click', () => {
+        if (mapController) mapController.zoomToAssets();
+      });
+
+      document.getElementById('btn-zoom-context').addEventListener('click', () => {
+        if (mapController) mapController.zoomToRegion();
+      });
+
+      // Play/Pause & slider
+      const playBtn = document.getElementById('btn-play-pause');
+      playBtn.addEventListener('click', togglePlayback);
+
+      const slider = document.getElementById('time-slider');
+      slider.addEventListener('input', (e) => {
+        stopPlayback();
+        applyTimeStep(parseInt(e.target.value, 10));
+      });
+
+      // Basemap switcher
+      document.querySelectorAll('.base-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          switchBasemap(btn.dataset.base);
+        });
+      });
+
+      // Sidebar panel toggle
+      const panelWrapper = document.getElementById('panel-wrapper');
+      const panelToggle = document.getElementById('panel-toggle');
+      panelToggle.addEventListener('click', () => {
+        panelWrapper.classList.toggle('collapsed');
+        panelToggle.innerText = panelWrapper.classList.contains('collapsed') ? '◀' : '▶';
+      });
+
+      // Collapsible Assets header toggle
+      const assetsHeader = document.getElementById('assets-list-header');
+      const assetsList = document.getElementById('assets-list');
+      const assetsChevron = document.getElementById('assets-chevron');
+      assetsHeader.addEventListener('click', () => {
+        const isHidden = assetsList.style.display === 'none';
+        assetsList.style.display = isHidden ? 'flex' : 'none';
+        assetsChevron.innerText = isHidden ? '▼' : '▶';
+      });
+
+      // Scenario dropdown
+      document.getElementById('scenario-selector').addEventListener('change', (e) => {
+        loadScenario(e.target.value);
+      });
+
+      // Layer toggles
+      const layerMap = {
+        'toggle-assets': 'assets',
+        'toggle-flow': 'flow',
+        'toggle-demand': 'demand',
+        'toggle-water': 'water',
+        'toggle-roads': 'roads',
+        'toggle-power': 'power'
+      };
+
+      Object.entries(layerMap).forEach(([checkboxId, layerKey]) => {
+        document.getElementById(checkboxId).addEventListener('change', (e) => {
+          if (mapController) {
+            mapController.setLayerVisibility(layerKey, e.target.checked);
+          }
+        });
+      });
+
+      // 3D Terrain toggle (TASK 4)
+      const terrainToggle = document.getElementById('toggle-terrain');
+      if (terrainToggle) {
+        terrainToggle.addEventListener('change', (e) => {
+          isTerrainActive = e.target.checked;
+          if (mapController) {
+            mapController.setTerrain(isTerrainActive);
+          }
+          updateAttributionText();
+        });
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', initApp);
+  </script>
+</body>
+</html>

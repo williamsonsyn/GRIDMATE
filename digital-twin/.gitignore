@@ -1,0 +1,6 @@
+# Digital Twin local gitignore
+logs/
+data/raw/
+.venv/
+__pycache__/
+

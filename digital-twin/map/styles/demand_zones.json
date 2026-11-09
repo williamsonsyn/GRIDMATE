@@ -1,0 +1,36 @@
+{
+  "fill_layer": {
+    "id": "demand-zones-fill",
+    "type": "fill",
+    "source": "demand-zones-source",
+    "paint": {
+      "fill-color": [
+        "match",
+        ["get", "zone_type"],
+        "residential", "#60a5fa",
+        "commercial", "#a78bfa",
+        "industrial", "#f472b6",
+        "#94a3b8"
+      ],
+      "fill-opacity": 0.22
+    }
+  },
+  "line_layer": {
+    "id": "demand-zones-line",
+    "type": "line",
+    "source": "demand-zones-source",
+    "paint": {
+      "line-color": [
+        "match",
+        ["get", "zone_type"],
+        "residential", "#3b82f6",
+        "commercial", "#8b5cf6",
+        "industrial", "#ec4899",
+        "#64748b"
+      ],
+      "line-width": 2,
+      "line-dasharray": [2, 1]
+    }
+  }
+}
+

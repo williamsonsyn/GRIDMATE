@@ -1,0 +1,36 @@
+{
+  "flow_line_layer": {
+    "id": "energy-flow-lines",
+    "type": "line",
+    "source": "energy-flow-source",
+    "layout": {
+      "line-join": "round",
+      "line-cap": "round"
+    },
+    "paint": {
+      "line-color": [
+        "match",
+        ["get", "source_type"],
+        "solar", "#f59e0b",
+        "wind", "#06b6d4",
+        "hydro", "#3b82f6",
+        "battery", "#10b981",
+        "grid", "#ef4444",
+        "#6366f1"
+      ],
+      "line-width": [
+        "interpolate", ["linear"], ["get", "flow_kw"],
+        0, 1.2,
+        100, 3.0,
+        500, 6.5
+      ],
+      "line-opacity": [
+        "case",
+        [">", ["get", "flow_kw"], 0], 0.85,
+        0.2
+      ],
+      "line-dasharray": [3, 2]
+    }
+  }
+}
+

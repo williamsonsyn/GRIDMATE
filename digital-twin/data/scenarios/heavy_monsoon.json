@@ -1,0 +1,30 @@
+{
+  "location": "Lonavala",
+  "scenario_id": "heavy_monsoon",
+  "scenario_name": "Heavy Monsoon",
+  "description": "High precipitation, maximum hydro capacity (400 kW), minimal solar, battery charging, and grid import.",
+  "is_synthetic": true,
+  "data_source": "synthetic_demo",
+  "note": "Simulated prototype dispatch. Illustrative demo data.",
+  "battery_convention": "battery_kw > 0 is discharging, battery_kw < 0 is charging",
+  "dispatch": [
+    {
+      "timestamp": "2026-10-01T12:00:00",
+      "solar_kw": 20.0,
+      "wind_kw": 210.0,
+      "hydro_kw": 400.0,
+      "battery_kw": -60.0,
+      "grid_kw": 330.0,
+      "load_kw": 900.0,
+      "curtailment_kw": 0.0,
+      "battery_soc_kwh": 760.0
+    }
+  ],
+  "metrics": {
+    "renewable_penetration_percent": 63.3,
+    "grid_dependency_percent": 36.7,
+    "curtailment_percent": 0.0,
+    "battery_utilization_percent": 24.0,
+    "estimated_co2_avoided_kg": 516.6
+  }
+}

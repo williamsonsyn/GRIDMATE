@@ -1,0 +1,112 @@
+{
+  "project": "GridMate Lonavala Digital Twin",
+  "location": "Lonavala, Maharashtra, India",
+  "center": [73.4350, 18.7600],
+  "zoom": 11.2,
+  "pitch": 0,
+  "bearing": 0,
+  "context_bbox": [73.25, 18.60, 73.68, 18.97],
+  "asset_bbox": [73.33, 18.66, 73.66, 18.95],
+  "bounds": [
+    [73.2500, 18.6000],
+    [73.6800, 18.9700]
+  ],
+  "basemaps": {
+    "streets": {
+      "name": "Streets",
+      "tiles": [
+        "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png",
+        "https://b.tile.openstreetmap.org/{z}/{x}/{y}.png"
+      ],
+      "tileSize": 256,
+      "maxzoom": 19,
+      "attribution": "© <a href=\"https://www.openstreetmap.org/copyright\" target=\"_blank\">OpenStreetMap</a> contributors"
+    },
+    "satellite": {
+      "name": "Satellite",
+      "tiles": [
+        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+      ],
+      "tileSize": 256,
+      "maxzoom": 17,
+      "attribution": "Imagery © Esri, Maxar, Earthstar Geographics | © OpenStreetMap contributors"
+    },
+    "plain_dark": {
+      "name": "Plain dark",
+      "tiles": [],
+      "attribution": "© OpenStreetMap contributors"
+    }
+  },
+  "asset_colors": {
+    "solar": "#f59e0b",
+    "wind": "#06b6d4",
+    "hydro": "#3b82f6",
+    "battery": "#10b981",
+    "grid": "#ef4444",
+    "demand": "#8b5cf6"
+  },
+  "status_colors": {
+    "active": "#10b981",
+    "discharging": "#10b981",
+    "charging": "#0284c7",
+    "idle": "#94a3b8",
+    "not_supplying": "#64748b"
+  },
+  "scenarios": [
+    { "id": "normal", "label": "Normal Day", "file": "../data/scenarios/normal.json" },
+    { "id": "cloudy", "label": "Cloudy Day", "file": "../data/scenarios/cloudy.json" },
+    { "id": "heavy_monsoon", "label": "Heavy Monsoon", "file": "../data/scenarios/heavy_monsoon.json" },
+    { "id": "high_wind", "label": "High Wind", "file": "../data/scenarios/high_wind.json" },
+    { "id": "peak_demand", "label": "Peak Demand", "file": "../data/scenarios/peak_demand.json" }
+  ],
+  "layers": [
+    {
+      "id": "water-features",
+      "name": "Water Bodies & Reservoirs",
+      "source_file": "../data/water_features.geojson",
+      "type": "fill",
+      "order": 1,
+      "default_visible": true
+    },
+    {
+      "id": "roads",
+      "name": "Major Road Network",
+      "source_file": "../data/roads.geojson",
+      "type": "line",
+      "order": 2,
+      "default_visible": true
+    },
+    {
+      "id": "power-lines",
+      "name": "Power Lines (OSM)",
+      "source_file": "../data/power_lines.geojson",
+      "type": "line",
+      "order": 3,
+      "default_visible": false
+    },
+    {
+      "id": "demand-zones",
+      "name": "Demand Zones",
+      "source_file": "../data/demand_zones.geojson",
+      "type": "fill",
+      "order": 3,
+      "default_visible": true
+    },
+    {
+      "id": "energy-flow",
+      "name": "Dynamic Energy Flow Lines",
+      "source_file": "../data/energy_flow_template.geojson",
+      "type": "line",
+      "order": 4,
+      "default_visible": true
+    },
+    {
+      "id": "assets",
+      "name": "Energy Assets & Infrastructure",
+      "source_file": "../data/assets.geojson",
+      "type": "circle",
+      "order": 5,
+      "default_visible": true
+    }
+  ]
+}
