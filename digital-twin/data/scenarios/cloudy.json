@@ -1,0 +1,30 @@
+{
+  "location": "Lonavala",
+  "scenario_id": "cloudy",
+  "scenario_name": "Cloudy Day",
+  "description": "Reduced solar irradiance with battery discharge and grid support.",
+  "is_synthetic": true,
+  "data_source": "synthetic_demo",
+  "note": "Simulated prototype dispatch. Illustrative demo data.",
+  "battery_convention": "battery_kw > 0 is discharging, battery_kw < 0 is charging",
+  "dispatch": [
+    {
+      "timestamp": "2026-10-01T12:00:00",
+      "solar_kw": 140.0,
+      "wind_kw": 160.0,
+      "hydro_kw": 260.0,
+      "battery_kw": 180.0,
+      "grid_kw": 160.0,
+      "load_kw": 900.0,
+      "curtailment_kw": 0.0,
+      "battery_soc_kwh": 370.0
+    }
+  ],
+  "metrics": {
+    "renewable_penetration_percent": 82.2,
+    "grid_dependency_percent": 17.8,
+    "curtailment_percent": 0.0,
+    "battery_utilization_percent": 72.0,
+    "estimated_co2_avoided_kg": 606.8
+  }
+}

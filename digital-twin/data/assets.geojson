@@ -1,0 +1,265 @@
+{
+  "type": "FeatureCollection",
+  "name": "GridMate_Lonavala_Assets",
+  "crs": {
+    "type": "name",
+    "properties": {
+      "name": "urn:ogc:def:crs:OGC:1.3:CRS84"
+    }
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "solar_01",
+        "type": "solar",
+        "name": "Solar Farm 01 - Campole Valley (Simulated)",
+        "capacity_kw": 350.0,
+        "status": "active",
+        "is_synthetic": true,
+        "data_source": "synthetic_demo",
+        "location_source": "osm",
+        "note": "Simulated prototype asset. Sited at real OSM solar plant way/1263886494. Coordinates are illustrative, not surveyed installation."
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          73.36335,
+          18.73242
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "solar_02",
+        "type": "solar",
+        "name": "Solar Farm 02 - Urse Corridor (Simulated)",
+        "capacity_kw": 250.0,
+        "status": "active",
+        "is_synthetic": true,
+        "data_source": "synthetic_demo",
+        "location_source": "osm",
+        "note": "Simulated prototype asset. Sited at real OSM solar plant way/421293013. Coordinates are illustrative, not surveyed installation."
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          73.63996,
+          18.71262
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "wind_01",
+        "type": "wind",
+        "name": "Wind Turbine Cluster 01 - Southern Ridge (Simulated)",
+        "capacity_kw": 100.0,
+        "status": "active",
+        "is_synthetic": true,
+        "data_source": "synthetic_demo",
+        "location_source": "osm",
+        "note": "Simulated prototype asset. Sited at real OSM wind turbine node/2925719473 (cluster of 6 turbines). Coordinates are illustrative, not surveyed infrastructure."
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          73.561944,
+          18.811286
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "wind_02",
+        "type": "wind",
+        "name": "Wind Turbine Cluster 02 - Lower Central Ridge (Simulated)",
+        "capacity_kw": 100.0,
+        "status": "active",
+        "is_synthetic": true,
+        "data_source": "synthetic_demo",
+        "location_source": "osm",
+        "note": "Simulated prototype asset. Sited at real OSM wind turbine node/2925719846 (cluster of 8 turbines). Coordinates are illustrative, not surveyed infrastructure."
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          73.557631,
+          18.821543
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "wind_03",
+        "type": "wind",
+        "name": "Wind Turbine Cluster 03 - Upper Central Ridge (Simulated)",
+        "capacity_kw": 75.0,
+        "status": "active",
+        "is_synthetic": true,
+        "data_source": "synthetic_demo",
+        "location_source": "osm",
+        "note": "Simulated prototype asset. Sited at real OSM wind turbine node/2925719130 (cluster of 10 turbines). Coordinates are illustrative, not surveyed infrastructure."
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          73.554519,
+          18.832855
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "wind_04",
+        "type": "wind",
+        "name": "Wind Turbine Cluster 04 - Northern Ridge (Simulated)",
+        "capacity_kw": 75.0,
+        "status": "active",
+        "is_synthetic": true,
+        "data_source": "synthetic_demo",
+        "location_source": "osm",
+        "note": "Simulated prototype asset. Sited at real OSM wind turbine node/2714783065 (cluster of 4 turbines). Coordinates are illustrative, not surveyed infrastructure."
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          73.594977,
+          18.89855
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "hydro_01",
+        "type": "hydro",
+        "name": "Hydro Plant 01 - Bhivpuri Station (Simulated)",
+        "capacity_kw": 160.0,
+        "status": "active",
+        "is_synthetic": true,
+        "data_source": "synthetic_demo",
+        "location_source": "osm",
+        "note": "Simulated prototype asset. Sited at real OSM hydroelectric plant way/972353126 (TATA Bhivpuri Hydroelectric Power Plant). Powerhouse position not surveyed."
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          73.4521,
+          18.93679
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "hydro_02",
+        "type": "hydro",
+        "name": "Hydro Plant 02 - Pawana Station (Simulated)",
+        "capacity_kw": 140.0,
+        "status": "active",
+        "is_synthetic": true,
+        "data_source": "synthetic_demo",
+        "location_source": "osm",
+        "note": "Simulated prototype asset. Sited at real OSM hydroelectric plant way/1138681292 (Pawana Hydroelectric Power Station). Powerhouse position not surveyed."
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          73.49478,
+          18.68142
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "hydro_03",
+        "type": "hydro",
+        "name": "Hydro Plant 03 - KHOPOLI Station (Simulated)",
+        "capacity_kw": 100.0,
+        "status": "active",
+        "is_synthetic": true,
+        "data_source": "synthetic_demo",
+        "location_source": "osm",
+        "note": "Simulated prototype asset. Sited at real OSM hydroelectric plant way/1463910401 (KHOPOLI). Powerhouse position not surveyed."
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          73.35575,
+          18.78183
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "battery_01",
+        "type": "battery",
+        "name": "Battery Storage BESS 01 - Substation Park (Simulated)",
+        "capacity_kw": 250.0,
+        "status": "active",
+        "is_synthetic": true,
+        "data_source": "synthetic_demo",
+        "location_source": "osm_nearest_substation",
+        "note": "Simulated prototype asset placed adjacent to real OSM substation way/1535010608.",
+        "capacity_kwh": 1000.0
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          73.41214,
+          18.74748
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "grid_01",
+        "type": "grid",
+        "name": "Grid Intertie 01 - Lonavala Substation (Simulated)",
+        "capacity_kw": 1500.0,
+        "status": "active",
+        "is_synthetic": true,
+        "data_source": "synthetic_demo",
+        "location_source": "osm_nearest_substation",
+        "note": "Simulated prototype asset sited at real OSM substation way/1535010608."
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          73.41134,
+          18.74778
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "demand_hub_01",
+        "type": "demand",
+        "name": "Lonavala Central Demand Hub (Simulated)",
+        "capacity_kw": 1200.0,
+        "status": "active",
+        "is_synthetic": true,
+        "data_source": "synthetic_demo",
+        "location_source": "synthetic_siting",
+        "note": "Simulated prototype asset. Coordinates are illustrative, not surveyed real infrastructure."
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          73.407,
+          18.752
+        ]
+      }
+    }
+  ]
+}

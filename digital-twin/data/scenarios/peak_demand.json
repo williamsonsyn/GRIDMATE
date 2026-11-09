@@ -1,0 +1,30 @@
+{
+  "location": "Lonavala",
+  "scenario_id": "peak_demand",
+  "scenario_name": "Peak Demand",
+  "description": "High evening tourism & residential demand requiring full battery output and grid import.",
+  "is_synthetic": true,
+  "data_source": "synthetic_demo",
+  "note": "Simulated prototype dispatch. Illustrative demo data.",
+  "battery_convention": "battery_kw > 0 is discharging, battery_kw < 0 is charging",
+  "dispatch": [
+    {
+      "timestamp": "2026-10-01T19:00:00",
+      "solar_kw": 0.0,
+      "wind_kw": 150.0,
+      "hydro_kw": 350.0,
+      "battery_kw": 250.0,
+      "grid_kw": 500.0,
+      "load_kw": 1250.0,
+      "curtailment_kw": 0.0,
+      "battery_soc_kwh": 200.0
+    }
+  ],
+  "metrics": {
+    "renewable_penetration_percent": 40.0,
+    "grid_dependency_percent": 40.0,
+    "curtailment_percent": 0.0,
+    "battery_utilization_percent": 100.0,
+    "estimated_co2_avoided_kg": 410.0
+  }
+}
