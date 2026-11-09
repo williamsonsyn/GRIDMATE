@@ -27,6 +27,20 @@ def test_scenarios_listed(client):
     assert ids == SCENARIOS
 
 
+def test_scenarios_compare_endpoint_mock(client, mock_mode):
+    for path in ("/api/scenarios/compare", "/api/scenarios/summary", "/api/scenarios/run-all"):
+        r = client.get(path)
+        assert r.status_code == 200
+        rows = r.json()["rows"]
+        assert len(rows) == 5
+        assert {row["scenario"] for row in rows} == set(SCENARIOS)
+        for row in rows:
+            assert "total_grid_cost_rs" in row
+            assert "savings_rs" in row
+            assert "battery_utilization_percent" in row
+            assert row["validation"] == "PASS"
+
+
 @pytest.mark.parametrize("scenario", SCENARIOS)
 def test_forecast_contract_mock(client, mock_mode, scenario):
     r = client.get("/api/forecast", params={"scenario": scenario})
@@ -228,4 +242,20 @@ def test_real_date_optimization_changes_costs_and_battery(client, real_mode):
     assert cost1 is not None and cost2 is not None
     assert cost1["total_grid_cost_rs"] != pytest.approx(cost2["total_grid_cost_rs"], rel=0.05)
     assert cost1["savings_rs"] != pytest.approx(cost2["savings_rs"], rel=0.05)
+
+
+@pytest.mark.real
+def test_real_scenarios_compare_runs_optimization(client, real_mode):
+    """GET /api/scenarios/compare runs all scenarios from run_scenarios.py."""
+    r = client.get("/api/scenarios/compare")
+    assert r.status_code == 200
+    rows = r.json()["rows"]
+    assert len(rows) == 5
+    by_sc = {row["scenario"]: row for row in rows}
+    assert "normal" in by_sc and "peak_demand" in by_sc and "high_wind" in by_sc
+    # In real optimization, peak_demand has higher grid cost than high_wind
+    assert by_sc["peak_demand"]["total_grid_cost_rs"] > by_sc["high_wind"]["total_grid_cost_rs"]
+    # All scenarios validated
+    assert all(row["validation"] == "PASS" for row in rows)
+
 

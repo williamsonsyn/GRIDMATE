@@ -51,6 +51,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 export const api = {
   health: () => request<HealthResponse>('/api/health'),
   scenarios: () => request<ScenarioInfo[]>('/api/scenarios'),
+  scenariosCompare: (date?: string | null) =>
+    request<ScenarioSummaryResponse>(date ? `/api/scenarios/compare?date=${encodeURIComponent(date)}` : '/api/scenarios/compare'),
   scenariosSummary: (date?: string | null) =>
     request<ScenarioSummaryResponse>(date ? `/api/scenarios/summary?date=${encodeURIComponent(date)}` : '/api/scenarios/summary'),
   assets: () => request<AssetsResponse>('/api/assets'),

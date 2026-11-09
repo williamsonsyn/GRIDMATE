@@ -156,6 +156,7 @@ class ScenarioSummaryRow(BaseModel):
     grid_only_cost_rs: float = 0.0
     savings_rs: float = 0.0
     savings_percent: float = 0.0
+    validation: str = "PASS"
 
 
 class ScenarioSummaryResponse(BaseModel):

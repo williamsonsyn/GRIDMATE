@@ -1,4 +1,5 @@
 import { BatteryStatus } from '../components/BatteryStatus';
+import { CompareScenarios } from '../components/CompareScenarios';
 import { CostCard } from '../components/CostCard';
 import { DemandChart } from '../components/DemandChart';
 import { DispatchChart } from '../components/DispatchChart';
@@ -15,7 +16,19 @@ import { useSimulation } from '../hooks/useSimulation';
 import type { CostMetrics } from '../types/api';
 
 export function Dashboard() {
-  const { state, select, setDate, setHour, runSelected, retry, dismissError, openComparison, closeComparison } = useSimulation();
+  const {
+    state,
+    select,
+    selectAndRun,
+    setDate,
+    setHour,
+    runSelected,
+    retry,
+    dismissError,
+    openComparison,
+    closeComparison,
+    fetchComparison,
+  } = useSimulation();
   const { phase, forecast, dispatch, metrics, assets, scenarios, active, previousMetrics, previousScenario, previousCost } = state;
   const busy = phase !== 'idle';
   const rows = dispatch?.dispatch ?? null;
@@ -86,6 +99,15 @@ export function Dashboard() {
           <DispatchChart dispatch={rows} busy={busy} hour={hour} />
           <EnergyMix dispatch={rows} busy={busy} />
         </div>
+
+        <CompareScenarios
+          rows={state.comparisonRows}
+          loading={state.comparisonLoading}
+          error={state.comparisonError}
+          activeScenario={active}
+          onSelectScenario={selectAndRun}
+          onRefresh={() => void fetchComparison()}
+        />
 
         <footer className="pb-6 pt-2 text-xs text-ink-mute">
           GridMate prototype. Forecasts, capacities and demand are synthetic and illustrative, not measured Lonavala data.

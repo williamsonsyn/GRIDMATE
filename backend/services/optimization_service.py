@@ -106,3 +106,24 @@ def optimize(forecast: JsonDict, scenario: str) -> tuple[JsonDict, str, list[str
             f"PyPSA optimizer could not produce a dispatch ({str(exc)[:160]}); "
             "showing rule-based mock dispatch instead."
         ]
+
+
+def run_all_scenarios(base_forecast: JsonDict | None = None) -> list[JsonDict]:
+    """Run all 5 scenarios from optimization/src/run_scenarios.py and return their summary together."""
+    if config.MODE == "mock":
+        return mock_data.get_mock_scenarios_summary()
+    with _lock:
+        src = str(config.OPTIMIZATION_SRC)
+        if src not in sys.path:
+            sys.path.insert(0, src)
+        import run_scenarios  # type: ignore[import-not-found]
+        try:
+            with contextlib.redirect_stdout(io.StringIO()):
+                rows = run_scenarios.run_all_scenarios(base_forecast=base_forecast)
+                return rows or mock_data.get_mock_scenarios_summary()
+        except Exception as exc:  # noqa: BLE001
+            log.exception("run_all_scenarios failed: %s", exc)
+            if config.MODE == "real":
+                raise OptimizationError(f"Running all scenarios failed: {exc}") from exc
+            return mock_data.get_mock_scenarios_summary()
+

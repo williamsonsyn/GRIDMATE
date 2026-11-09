@@ -100,7 +100,18 @@ export function useSimulation() {
     }
   }, [patch, state.selectedDate]);
 
-  // Initial load: scenarios, health, assets, then the default "normal" run.
+  const fetchComparison = useCallback(async (dateParam?: string | null) => {
+    patch({ comparisonLoading: true, comparisonError: null });
+    try {
+      const targetDate = dateParam !== undefined ? (dateParam || null) : (state.selectedDate || null);
+      const data = await api.scenariosCompare(targetDate);
+      patch({ comparisonRows: data.rows, comparisonLoading: false });
+    } catch (e) {
+      patch({ comparisonLoading: false, comparisonError: toUiError(e).message });
+    }
+  }, [patch, state.selectedDate]);
+
+  // Initial load: scenarios, health, assets, then the default "normal" run and scenario comparison.
   useEffect(() => {
     let cancelled = false;
     void (async () => {
@@ -114,23 +125,27 @@ export function useSimulation() {
         assetsError: as.status === 'rejected' ? toUiError(as.reason).message : null,
       }));
       await run('normal');
+      if (!cancelled) {
+        void fetchComparison();
+      }
     })();
     return () => { cancelled = true; };
-  }, [run]);
+  }, [run, fetchComparison]);
 
   const openComparison = useCallback(async () => {
-    patch({ comparisonOpen: true, comparisonLoading: true, comparisonError: null });
-    try {
-      const data = await api.scenariosSummary(state.selectedDate);
-      patch({ comparisonRows: data.rows, comparisonLoading: false });
-    } catch (e) {
-      patch({ comparisonLoading: false, comparisonError: toUiError(e).message });
+    patch({ comparisonOpen: true });
+    if (!state.comparisonRows) {
+      await fetchComparison(state.selectedDate);
     }
-  }, [patch, state.selectedDate]);
+  }, [patch, fetchComparison, state.comparisonRows, state.selectedDate]);
 
   return {
     state,
     select: (selected: ScenarioId) => patch({ selected }),
+    selectAndRun: (scenario: ScenarioId) => {
+      patch({ selected: scenario });
+      void run(scenario, state.selectedDate);
+    },
     setDate: (selectedDate: string) => {
       patch({ selectedDate });
       void run(state.selected, selectedDate);
@@ -141,5 +156,6 @@ export function useSimulation() {
     dismissError: () => patch({ error: null }),
     openComparison,
     closeComparison: () => patch({ comparisonOpen: false }),
+    fetchComparison,
   };
 }

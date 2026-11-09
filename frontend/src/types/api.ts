@@ -116,6 +116,7 @@ export interface ScenarioSummaryRow {
   grid_only_cost_rs: number;
   savings_rs: number;
   savings_percent: number;
+  validation?: string;
 }
 
 export interface ScenarioSummaryResponse {

@@ -59,6 +59,14 @@ SCENARIOS = {
     },
 }
 
+SCENARIO_LABELS = {
+    "normal": "Normal Day",
+    "cloudy": "Cloudy Day",
+    "heavy_monsoon": "Heavy Monsoon",
+    "high_wind": "High Wind",
+    "peak_demand": "Peak Demand",
+}
+
 
 # -------------------------------------------------
 # Validation
@@ -147,13 +155,14 @@ def validate_dispatch(forecast: dict, result: dict, config: dict):
 # Main runner
 # -------------------------------------------------
 
-def run_all_scenarios():
+def run_all_scenarios(base_forecast=None):
     base_dir   = Path(__file__).resolve().parent.parent
     data_file  = base_dir / "data"    / "sample_forecast.json"
     output_dir = base_dir / "outputs" / "scenarios"
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    base_forecast = load_json(data_file)
+    if base_forecast is None:
+        base_forecast = load_json(data_file)
     config        = load_config()
 
     summary = []
@@ -186,6 +195,7 @@ def run_all_scenarios():
         extra_m = result.get("extra_metrics", {})
         summary.append({
             "scenario":                      name,
+            "label":                         SCENARIO_LABELS.get(name, name.replace("_", " ").title()),
             "renewable_penetration_percent": metrics["renewable_penetration_percent"],
             "grid_dependency_percent":       metrics["grid_dependency_percent"],
             "curtailment_percent":           metrics["curtailment_percent"],
@@ -253,6 +263,7 @@ def run_all_scenarios():
     print(f"\nScenario outputs saved in: {output_dir}")
     print(f"Summary CSV saved at: {csv_file}")
     print("All scenario tests completed!")
+    return summary
 
 
 if __name__ == "__main__":
