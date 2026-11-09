@@ -159,9 +159,9 @@ def test_real_assets(client, real_mode):
 
 
 @pytest.mark.real
-def test_real_peak_demand_reports_status(client, monkeypatch):
-    """Peak demand must never silently fail: either solved by PyPSA or clearly flagged."""
-    monkeypatch.setattr(config, "MODE", "auto")
+def test_real_peak_demand_solved_by_pypsa(client, real_mode):
+    """Peak demand (1.25 MW) must be solved by PyPSA, with grid within capacity."""
     body = client.post("/api/optimize", json={"scenario": "peak_demand"}).json()
-    meta = body["dispatch"]["meta"]
-    assert meta["optimization_source"] == "pypsa" or meta["warnings"]
+    assert body["dispatch"]["meta"]["optimization_source"] == "pypsa"
+    cap = body["metrics"]["system"]["grid_capacity_kw"]
+    assert cap >= 1500 and max(r["grid_kw"] for r in body["dispatch"]["dispatch"]) <= cap + 0.01
