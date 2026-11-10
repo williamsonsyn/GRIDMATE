@@ -131,6 +131,7 @@ class AssetsResponse(BaseModel):
     water_features: JsonDict
     power_lines: JsonDict
     energy_flow: JsonDict
+    roads: JsonDict | None = None
     map_config: JsonDict
     source: Literal["digital_twin", "mock"]
     label: str

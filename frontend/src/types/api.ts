@@ -187,6 +187,9 @@ export interface MapConfig {
   zoom: number;
   basemaps?: Record<string, Basemap>;
   asset_colors?: Partial<Record<AssetType, string>>;
+  asset_bbox?: [number, number, number, number];
+  context_bbox?: [number, number, number, number];
+  bounds?: [[number, number], [number, number]];
 }
 
 export interface AssetsResponse {
@@ -195,6 +198,7 @@ export interface AssetsResponse {
   water_features: GeoCollection<LooseProps>;
   power_lines: GeoCollection<LooseProps>;
   energy_flow: GeoCollection<FlowProps>;
+  roads?: GeoCollection<LooseProps>;
   map_config: MapConfig;
   source: 'digital_twin' | 'mock';
   label: string;

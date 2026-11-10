@@ -162,9 +162,9 @@ def test_empty_forecast_rejected():
 def test_no_machine_specific_paths():
     bad = ("C:\\", "/home/", "/Users/")
     for f in pathlib.Path(config.REPO_ROOT, "backend").rglob("*.py"):
-        if f.parent.name == "tests":
+        if f.parent.name == "tests" or "venv" in f.parts or ".venv" in f.parts:
             continue
-        text = f.read_text()
+        text = f.read_text(encoding="utf-8", errors="ignore")
         assert not any(b in text for b in bad), f
 
 
