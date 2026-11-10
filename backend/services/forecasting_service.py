@@ -38,6 +38,7 @@ def _get_service_url() -> str | None:
 
 
 def _load_predict() -> Any:
+    """Lazy local import for development mode only."""
     src = str(config.FORECAST_SRC)
     if src not in sys.path:
         sys.path.insert(0, src)
@@ -67,6 +68,17 @@ def _round_rows(raw: JsonDict) -> JsonDict:
     }
 
 
+def _get_local_forecast(scenario: str) -> JsonDict:
+    """Run local in-process forecasting (dev mode)."""
+    with _lock:
+        predict = _load_predict()
+        with contextlib.redirect_stdout(io.StringIO()):
+            raw = predict.generate_forecast(
+                horizon=config.HORIZON_HOURS, scenario=scenario, save_output=False
+            )
+    return _round_rows(raw)
+
+
 def get_real_forecast(scenario: str) -> JsonDict:
     service_url = _get_service_url()
     if service_url:
@@ -80,21 +92,27 @@ def get_real_forecast(scenario: str) -> JsonDict:
             log.exception("Remote forecasting service request failed: %s", exc)
             raise ForecastError(f"Forecasting service error: {exc}") from exc
 
-    with _lock:
-        predict = _load_predict()
-        with contextlib.redirect_stdout(io.StringIO()):
-            raw = predict.generate_forecast(
-                horizon=config.HORIZON_HOURS, scenario=scenario, save_output=False
-            )
-    return _round_rows(raw)
+    return _get_local_forecast(scenario)
 
 
 def get_forecast(scenario: str) -> tuple[JsonDict, str, list[str]]:
     """Return (forecast, source, warnings). Source is 'model' or 'mock'."""
+    service_url = _get_service_url()
+    if service_url:
+        # In production with service binding: call remote service without silent local fallback
+        if config.MODE == "mock":
+            return mock_data.get_mock_forecast(scenario), "mock", []
+        try:
+            return get_real_forecast(scenario), "model", []
+        except Exception as exc:
+            log.exception("Production forecasting service failed for scenario %s", scenario)
+            raise ForecastError(f"Forecasting service unavailable: {exc}") from exc
+
+    # Local development fallback
     if config.MODE == "mock":
         return mock_data.get_mock_forecast(scenario), "mock", []
     try:
-        return get_real_forecast(scenario), "model", []
+        return _get_local_forecast(scenario), "model", []
     except Exception as exc:  # noqa: BLE001 - we surface/fallback on any module failure
         log.exception("Real forecast failed for scenario %s", scenario)
         if config.MODE == "real":
@@ -115,7 +133,7 @@ def get_forecast_for_date(
     """
     from .weather_service import get_weather_for_date
 
-    df_weather, weather_src, note = get_weather_for_date(date_str)
+    weather_records, weather_src, note = get_weather_for_date(date_str)
     if config.MODE == "mock":
         raw = mock_data.get_mock_forecast(scenario)
         for i, row in enumerate(raw["forecast"]):
@@ -124,18 +142,11 @@ def get_forecast_for_date(
 
     service_url = _get_service_url()
     if service_url:
-        weather_list = None
-        if df_weather is not None:
-            # Convert timestamp to ISO string format for JSON serialization
-            df_copy = df_weather.copy()
-            if "timestamp" in df_copy.columns:
-                df_copy["timestamp"] = df_copy["timestamp"].astype(str)
-            weather_list = df_copy.to_dict(orient="records")
-
+        # In production with service binding: call remote forecasting service directly
         payload = {
             "scenario": scenario,
             "horizon": config.HORIZON_HOURS,
-            "future_weather": weather_list,
+            "future_weather": weather_records,
             "allow_arbitrary_dates": True,
         }
         try:
@@ -145,18 +156,15 @@ def get_forecast_for_date(
                 raw = resp.json()
             return _round_rows(raw), "model", [], note
         except Exception as exc:
-            log.exception("Remote forecasting service for date %s failed: %s", date_str, exc)
-            if config.MODE == "real":
-                raise ForecastError(f"Forecasting for {date_str} failed: {exc}") from exc
-            raw = mock_data.get_mock_forecast(scenario)
-            for i, row in enumerate(raw["forecast"]):
-                row["timestamp"] = f"{date_str}T{i:02d}:00:00"
-            return (
-                raw,
-                "mock",
-                [f"Forecast service unavailable ({type(exc).__name__}); showing mock forecast."],
-                note,
-            )
+            log.exception("Production forecasting service for date %s failed: %s", date_str, exc)
+            raise ForecastError(f"Forecasting service unavailable for {date_str}: {exc}") from exc
+
+    # Local development mode: convert records to DataFrame for predict.py if pandas is present
+    try:
+        import pandas as pd  # lazy local import
+        df_weather = pd.DataFrame(weather_records)
+    except ImportError:
+        df_weather = None
 
     try:
         with _lock:

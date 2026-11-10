@@ -3,7 +3,8 @@
 set -e
 cd "$(dirname "$0")"
 [ -d .venv ] || python3 -m venv .venv
-.venv/bin/python -m pip install -q -r backend/requirements.txt
+[ -f backend/requirements-dev.txt ] && REQ="backend/requirements-dev.txt" || REQ="backend/requirements.txt"
+.venv/bin/python -m pip install -q -r $REQ
 .venv/bin/python -m uvicorn backend.main:app --port 8000 &
 BACK=$!
 trap 'kill $BACK' EXIT

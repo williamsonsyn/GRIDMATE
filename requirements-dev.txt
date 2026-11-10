@@ -1,0 +1,3 @@
+# GridMate Monorepo — Local Development & Testing Requirements
+-r backend/requirements-dev.txt
+

@@ -57,17 +57,17 @@ def get_assets() -> tuple[JsonDict, str]:
     """Return (layers, source) where source is 'digital_twin' or 'mock'."""
     service_url = _get_service_url()
     if service_url:
+        # Production binding mode: call remote digital-twin service directly
         try:
             with httpx.Client(timeout=15.0) as client:
                 resp = client.get(f"{service_url}/assets")
                 resp.raise_for_status()
                 return resp.json(), "digital_twin"
         except Exception as exc:
-            log.exception("Remote digital twin service failed: %s", exc)
-            if config.MODE == "real":
-                raise RuntimeError(f"Digital twin service error: {exc}") from exc
-            return mock_data.get_mock_assets(), "mock"
+            log.exception("Production digital twin service failed: %s", exc)
+            raise RuntimeError(f"Digital twin service unavailable: {exc}") from exc
 
+    # Local development mode
     if config.MODE != "mock":
         try:
             return _load_real(), "digital_twin"
