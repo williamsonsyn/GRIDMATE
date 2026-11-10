@@ -3,8 +3,12 @@ from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException
 
-from ..models.schemas import Scenario, SuggestionsResponse
-from ..services import suggestions_service
+try:
+    from ..models.schemas import Scenario, SuggestionsResponse
+    from ..services import suggestions_service
+except (ImportError, ValueError):
+    from models.schemas import Scenario, SuggestionsResponse  # type: ignore[no-redef]
+    from services import suggestions_service  # type: ignore[no-redef]
 
 router = APIRouter(tags=["suggestions"])
 
@@ -23,4 +27,3 @@ def get_suggestions(
             status_code=503,
             detail=f"Failed to generate suggestions: {exc}",
         ) from exc
-

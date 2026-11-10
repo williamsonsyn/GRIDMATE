@@ -6,12 +6,20 @@ from datetime import datetime, timezone
 from threading import RLock
 from typing import Any
 
-from .. import config
-from ..models.schemas import (
-    DispatchResponse, ForecastResponse, Meta, Metrics, MetricsResponse,
-    OptimizeResponse, Scenario, ScenarioInfo, SystemInfo, Totals,
-)
-from . import forecasting_service, optimization_service
+try:
+    from .. import config
+    from ..models.schemas import (
+        DispatchResponse, ForecastResponse, Meta, Metrics, MetricsResponse,
+        OptimizeResponse, Scenario, ScenarioInfo, SystemInfo, Totals,
+    )
+    from . import forecasting_service, optimization_service
+except (ImportError, ValueError):
+    import config  # type: ignore[no-redef]
+    from models.schemas import (  # type: ignore[no-redef]
+        DispatchResponse, ForecastResponse, Meta, Metrics, MetricsResponse,
+        OptimizeResponse, Scenario, ScenarioInfo, SystemInfo, Totals,
+    )
+    from services import forecasting_service, optimization_service  # type: ignore[no-redef]
 
 JsonDict = dict[str, Any]
 

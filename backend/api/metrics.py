@@ -1,11 +1,19 @@
 from fastapi import APIRouter, HTTPException
 
-from ..models.schemas import AssetsResponse, MetricsResponse, Scenario
-from ..services import assets_service
-from ..services.forecasting_service import ForecastError
-from ..services.optimization_service import OptimizationError
-from ..services.scenario_service import service
-from .. import config
+try:
+    from ..models.schemas import AssetsResponse, MetricsResponse, Scenario
+    from ..services import assets_service
+    from ..services.forecasting_service import ForecastError
+    from ..services.optimization_service import OptimizationError
+    from ..services.scenario_service import service
+    from .. import config
+except (ImportError, ValueError):
+    from models.schemas import AssetsResponse, MetricsResponse, Scenario  # type: ignore[no-redef]
+    from services import assets_service  # type: ignore[no-redef]
+    from services.forecasting_service import ForecastError  # type: ignore[no-redef]
+    from services.optimization_service import OptimizationError  # type: ignore[no-redef]
+    from services.scenario_service import service  # type: ignore[no-redef]
+    import config  # type: ignore[no-redef]
 
 router = APIRouter(tags=["metrics"])
 

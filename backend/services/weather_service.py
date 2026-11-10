@@ -15,7 +15,10 @@ from typing import Any
 import urllib.error
 import urllib.request
 
-from .. import config
+try:
+    from .. import config
+except (ImportError, ValueError):
+    import config  # type: ignore[no-redef]
 
 log = logging.getLogger(__name__)
 

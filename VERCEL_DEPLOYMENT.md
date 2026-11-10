@@ -115,6 +115,7 @@ At runtime, Vercel dynamically injects secure URLs for each service. The backend
 
 | Variable | Target Service | Default (Local) | Production Value | Purpose |
 |---|---|---|---|---|
+| `VERCEL_SUPPORT_LARGE_FUNCTIONS` | Vercel Project | *(unset)* | `1` | Enables Vercel Fluid Compute Large Functions (expands max uncompressed function limit from 500 MB to 5 GB for heavy Python ML/solver packages like XGBoost/PyPSA). |
 | `GRIDMATE_MODE` | `backend` | `auto` | `auto` | `auto` uses real services with mock fallback; `real` enforces strict execution; `mock` forces demo data. |
 | `GRIDMATE_CORS_ORIGINS` | `backend` | `http://localhost:5173,...` | `*` or domain | Configures FastAPI CORSMiddleware origins. |
 | `FORECASTING_SERVICE_URL` | `backend` | *(unset)* | *(auto-injected)* | Vercel service binding to the internal forecasting service. |

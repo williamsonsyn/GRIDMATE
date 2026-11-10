@@ -7,10 +7,16 @@ import logging
 from threading import Lock
 from typing import Any
 
-from .. import config
-from ..models.schemas import Scenario
-from . import mock_data, optimization_service
-from .scenario_service import service
+try:
+    from .. import config
+    from ..models.schemas import Scenario
+    from . import mock_data, optimization_service
+    from .scenario_service import service
+except (ImportError, ValueError):
+    import config  # type: ignore[no-redef]
+    from models.schemas import Scenario  # type: ignore[no-redef]
+    from services import mock_data, optimization_service  # type: ignore[no-redef]
+    from services.scenario_service import service  # type: ignore[no-redef]
 
 log = logging.getLogger(__name__)
 JsonDict = dict[str, Any]

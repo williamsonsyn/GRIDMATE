@@ -18,8 +18,12 @@ from typing import Any
 
 import httpx
 
-from .. import config
-from . import mock_data
+try:
+    from .. import config
+    from . import mock_data
+except (ImportError, ValueError):
+    import config  # type: ignore[no-redef]
+    from services import mock_data  # type: ignore[no-redef]
 
 log = logging.getLogger(__name__)
 JsonDict = dict[str, Any]
@@ -149,7 +153,6 @@ def optimize(forecast: JsonDict, scenario: str) -> tuple[JsonDict, str, list[str
 
     service_url = _get_service_url()
     if service_url:
-        # Production binding mode: do not silently fall back to local implementation
         if config.MODE == "mock":
             return _mock(), "mock", []
         try:
@@ -158,7 +161,6 @@ def optimize(forecast: JsonDict, scenario: str) -> tuple[JsonDict, str, list[str
             log.exception("Production optimization service failed for scenario %s: %s", scenario, exc)
             raise OptimizationError(f"Optimization service unavailable: {exc}") from exc
 
-    # Local development mode
     if config.MODE == "mock":
         return _mock(), "mock", []
     try:
@@ -191,7 +193,6 @@ def run_all_scenarios(base_forecast: JsonDict | None = None) -> list[JsonDict]:
             log.exception("Production optimization run_all_scenarios failed: %s", exc)
             raise OptimizationError(f"Optimization service unavailable for scenarios: {exc}") from exc
 
-    # Local development mode
     with _lock:
         src = str(config.OPTIMIZATION_SRC)
         if src not in sys.path:

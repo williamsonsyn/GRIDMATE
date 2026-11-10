@@ -1,11 +1,19 @@
 from fastapi import APIRouter, HTTPException
 
-from ..models.schemas import (
-    ForecastResponse, OptimizeRequest, OptimizeResponse, ScenarioInfo, ScenarioRequest,
-)
-from ..services.forecasting_service import ForecastError
-from ..services.optimization_service import OptimizationError
-from ..services.scenario_service import SCENARIOS, service
+try:
+    from ..models.schemas import (
+        ForecastResponse, OptimizeRequest, OptimizeResponse, ScenarioInfo, ScenarioRequest,
+    )
+    from ..services.forecasting_service import ForecastError
+    from ..services.optimization_service import OptimizationError
+    from ..services.scenario_service import SCENARIOS, service
+except (ImportError, ValueError):
+    from models.schemas import (  # type: ignore[no-redef]
+        ForecastResponse, OptimizeRequest, OptimizeResponse, ScenarioInfo, ScenarioRequest,
+    )
+    from services.forecasting_service import ForecastError  # type: ignore[no-redef]
+    from services.optimization_service import OptimizationError  # type: ignore[no-redef]
+    from services.scenario_service import SCENARIOS, service  # type: ignore[no-redef]
 
 router = APIRouter(tags=["scenarios"])
 

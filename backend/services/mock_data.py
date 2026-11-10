@@ -9,7 +9,10 @@ import math
 from datetime import datetime, timedelta
 from typing import Any
 
-from .. import config
+try:
+    from .. import config
+except (ImportError, ValueError):
+    import config  # type: ignore[no-redef]
 
 JsonDict = dict[str, Any]
 

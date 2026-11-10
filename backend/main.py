@@ -1,18 +1,32 @@
 """GridMate FastAPI application.
 
-Run from the repository root:  uvicorn backend.main:app --reload --port 8000
+Supports execution both as a package (`backend.main:app`) and as a standalone serverless module (`main:app`).
 """
 from __future__ import annotations
 
 import os
+from pathlib import Path
+import sys
+
+# Ensure current directory is in sys.path for serverless standalone execution
+_current_dir = str(Path(__file__).resolve().parent)
+if _current_dir not in sys.path:
+    sys.path.insert(0, _current_dir)
+
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import httpx
 
-from . import config
-from .api import dispatch, forecast, metrics, scenarios, suggestions, summary
-from .models.schemas import HealthResponse
-from .services import assets_service
+try:
+    from . import config
+    from .api import dispatch, forecast, metrics, scenarios, suggestions, summary
+    from .models.schemas import HealthResponse
+    from .services import assets_service
+except (ImportError, ValueError):
+    import config  # type: ignore[no-redef]
+    from api import dispatch, forecast, metrics, scenarios, suggestions, summary  # type: ignore[no-redef]
+    from models.schemas import HealthResponse  # type: ignore[no-redef]
+    from services import assets_service  # type: ignore[no-redef]
 
 app = FastAPI(
     title="GridMate API",
