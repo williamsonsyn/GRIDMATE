@@ -123,6 +123,39 @@ export interface ScenarioSummaryResponse {
   rows: ScenarioSummaryRow[];
 }
 
+export interface ResourceUsageItem {
+  source: string;
+  name: string;
+  installed_kw: number;
+  avg_use_kw: number;
+  peak_use_kw: number;
+  headroom_kw: number;
+  headroom_percent: number;
+  capacity_kwh?: number | null;
+}
+
+export interface GridReductionSuggestion {
+  rank: number;
+  id: string;
+  title: string;
+  option_type: string;
+  capacity_added: string;
+  grid_reduction_kwh: number;
+  grid_reduction_percent: number;
+  savings_rs: number;
+  description: string;
+}
+
+export interface SuggestionsResponse {
+  scenario: ScenarioId;
+  date?: string | null;
+  peak_grid_hours: string[];
+  peak_grid_reason: string;
+  resources: ResourceUsageItem[];
+  suggestions: GridReductionSuggestion[];
+  note: string;
+}
+
 export interface OptimizeResponse {
   scenario: ScenarioId;
   forecast: ForecastResponse;
@@ -158,6 +191,7 @@ export interface AssetProps {
   is_synthetic?: boolean;
   note?: string;
   location_source?: string;
+  data_source?: string;
 }
 export interface ZoneProps {
   id: string;
@@ -187,6 +221,9 @@ export interface MapConfig {
   zoom: number;
   basemaps?: Record<string, Basemap>;
   asset_colors?: Partial<Record<AssetType, string>>;
+  asset_bbox?: [number, number, number, number];
+  context_bbox?: [number, number, number, number];
+  bounds?: [[number, number], [number, number]];
 }
 
 export interface AssetsResponse {
@@ -195,6 +232,7 @@ export interface AssetsResponse {
   water_features: GeoCollection<LooseProps>;
   power_lines: GeoCollection<LooseProps>;
   energy_flow: GeoCollection<FlowProps>;
+  roads?: GeoCollection<LooseProps>;
   map_config: MapConfig;
   source: 'digital_twin' | 'mock';
   label: string;

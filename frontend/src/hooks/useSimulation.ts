@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ApiError, api } from '../services/api';
 import type {
   AssetsResponse, CostMetrics, DispatchResponse, ForecastResponse, HealthResponse, Metrics, MetricsResponse,
-  ScenarioId, ScenarioInfo, ScenarioSummaryRow,
+  ScenarioId, ScenarioInfo, ScenarioSummaryRow, SuggestionsResponse,
 } from '../types/api';
 
 export type Phase = 'idle' | 'forecasting' | 'optimizing' | 'updating';
@@ -34,6 +34,10 @@ export interface SimulationState {
   comparisonRows: ScenarioSummaryRow[] | null;
   comparisonLoading: boolean;
   comparisonError: string | null;
+  // resources & suggestions to reduce grid use
+  suggestions: SuggestionsResponse | null;
+  suggestionsLoading: boolean;
+  suggestionsError: string | null;
 }
 
 const FALLBACK_SCENARIOS: ScenarioInfo[] = [
@@ -60,6 +64,7 @@ export function useSimulation() {
     previousCost: null,
     assets: null, assetsError: null, health: null, error: null, hour: 12,
     comparisonOpen: false, comparisonRows: null, comparisonLoading: false, comparisonError: null,
+    suggestions: null, suggestionsLoading: false, suggestionsError: null,
   });
   const running = useRef(false);
 
@@ -75,8 +80,14 @@ export function useSimulation() {
       const forecast = await api.setScenario(scenario, targetDate);
       if (!forecast.forecast.length) throw new ApiError('The forecast came back empty.', 'pipeline', null);
       setState((s) => ({ ...s, forecast, phase: 'optimizing' }));
-      // Step 2: optimization -> dispatch + metrics.
-      const result = await api.optimize(scenario, targetDate);
+      // Step 2: optimization -> dispatch + metrics & PyPSA suggestions.
+      const [result, suggestionsRes] = await Promise.all([
+        api.optimize(scenario, targetDate),
+        api.suggestions(scenario, targetDate).catch((err) => {
+          console.warn('Failed to fetch suggestions:', err);
+          return null;
+        }),
+      ]);
       if (!result.dispatch.dispatch.length) throw new ApiError('The optimizer returned no dispatch.', 'pipeline', null);
       // Step 3: update digital twin and charts.
       setState((s) => ({ ...s, phase: 'updating' }));
@@ -92,6 +103,7 @@ export function useSimulation() {
         previousScenario: s.metrics ? s.active : null,
         previousCost: s.metrics?.cost as CostMetrics | null ?? null,
         metrics: result.metrics,
+        suggestions: suggestionsRes ?? s.suggestions,
       }));
     } catch (e) {
       patch({ phase: 'idle', error: toUiError(e) });

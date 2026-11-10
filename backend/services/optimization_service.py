@@ -71,12 +71,14 @@ def get_system_info() -> dict[str, float]:
             "battery_min_soc_kwh", "grid_capacity_kw")}
 
 
-def run_real_optimization(forecast: JsonDict) -> JsonDict:
+def run_real_optimization(forecast: JsonDict, config_override: dict | None = None) -> JsonDict:
     with _lock:
         optimizer = _load_optimizer()
         with tempfile.TemporaryDirectory() as tmp:
             with contextlib.redirect_stdout(io.StringIO()):
-                result = optimizer.optimize_dispatch(forecast, output_path=Path(tmp) / "dispatch.json")
+                result = optimizer.optimize_dispatch(
+                    forecast, output_path=Path(tmp) / "dispatch.json", config_override=config_override
+                )
     return {
         "location": result.get("location", config.LOCATION),
         "dispatch": _clean_dispatch(result["dispatch"]),

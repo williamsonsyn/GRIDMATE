@@ -1,6 +1,6 @@
 import type {
   AssetsResponse, ForecastResponse, HealthResponse, OptimizeResponse, ScenarioId, ScenarioInfo,
-  ScenarioSummaryResponse,
+  ScenarioSummaryResponse, SuggestionsResponse,
 } from '../types/api';
 
 const BASE: string = import.meta.env.VITE_API_BASE ?? '';
@@ -69,5 +69,10 @@ export const api = {
   forecastByDate: (date: string, scenario?: ScenarioId) => {
     const sc = scenario ? `&scenario=${scenario}` : '';
     return request<ForecastResponse>(`/api/forecast?date=${date}${sc}`);
+  },
+  suggestions: (scenario: ScenarioId, date?: string | null) => {
+    const params = new URLSearchParams({ scenario });
+    if (date) params.set('date', date);
+    return request<SuggestionsResponse>(`/api/suggestions?${params.toString()}`);
   },
 };

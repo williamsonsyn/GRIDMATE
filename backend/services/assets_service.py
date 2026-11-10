@@ -18,6 +18,7 @@ _LAYERS = {
     "water_features": "water_features.geojson",
     "power_lines": "power_lines.geojson",
     "energy_flow": "energy_flow_template.geojson",
+    "roads": "roads.geojson",
 }
 
 

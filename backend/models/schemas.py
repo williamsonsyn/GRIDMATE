@@ -131,6 +131,7 @@ class AssetsResponse(BaseModel):
     water_features: JsonDict
     power_lines: JsonDict
     energy_flow: JsonDict
+    roads: JsonDict | None = None
     map_config: JsonDict
     source: Literal["digital_twin", "mock"]
     label: str
@@ -161,3 +162,37 @@ class ScenarioSummaryRow(BaseModel):
 
 class ScenarioSummaryResponse(BaseModel):
     rows: list[ScenarioSummaryRow]
+
+
+class ResourceUsageItem(BaseModel):
+    source: str
+    name: str
+    installed_kw: float
+    avg_use_kw: float
+    peak_use_kw: float
+    headroom_kw: float
+    headroom_percent: float
+    capacity_kwh: float | None = None
+
+
+class GridReductionSuggestion(BaseModel):
+    rank: int
+    id: str
+    title: str
+    option_type: str
+    capacity_added: str
+    grid_reduction_kwh: float
+    grid_reduction_percent: float
+    savings_rs: float
+    description: str
+
+
+class SuggestionsResponse(BaseModel):
+    scenario: Scenario
+    date: str | None = None
+    peak_grid_hours: list[str]
+    peak_grid_reason: str
+    resources: list[ResourceUsageItem]
+    suggestions: list[GridReductionSuggestion]
+    note: str = "Estimates from the simulation"
+

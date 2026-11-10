@@ -7,9 +7,15 @@ import pytest
 from backend import config
 from backend.services import optimization_service
 
-SCENARIOS = ["normal", "cloudy", "heavy_monsoon", "high_wind", "peak_demand"]
-FORECAST_KEYS = {"timestamp", "solar_kw", "wind_kw", "hydro_kw", "load_kw"}
-DISPATCH_KEYS = FORECAST_KEYS | {"battery_kw", "grid_kw", "curtailment_kw", "battery_soc_kwh"}
+SCENARIOS = [
+    "normal", "cloudy", "heavy_monsoon", "high_wind", "peak_demand",
+]
+FORECAST_KEYS = {
+    "timestamp", "solar_kw", "wind_kw", "hydro_kw", "load_kw",
+}
+DISPATCH_KEYS = FORECAST_KEYS | {
+    "battery_kw", "grid_kw", "curtailment_kw", "battery_soc_kwh",
+}
 METRIC_KEYS = {
     "renewable_penetration_percent", "grid_dependency_percent", "curtailment_percent",
     "battery_utilization_percent", "estimated_co2_avoided_kg",
@@ -39,6 +45,25 @@ def test_scenarios_compare_endpoint_mock(client, mock_mode):
             assert "savings_rs" in row
             assert "battery_utilization_percent" in row
             assert row["validation"] == "PASS"
+
+
+def test_suggestions_endpoint_mock(client, mock_mode):
+    r = client.get("/api/suggestions?scenario=normal")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["scenario"] == "normal"
+    assert "peak_grid_hours" in body and len(body["peak_grid_hours"]) > 0
+    assert "peak_grid_reason" in body and len(body["peak_grid_reason"]) > 0
+    assert len(body["resources"]) == 5
+    for res in body["resources"]:
+        assert "installed_kw" in res and "avg_use_kw" in res and "headroom_kw" in res
+    assert len(body["suggestions"]) == 3
+    for s in body["suggestions"]:
+        assert s["rank"] in (1, 2, 3)
+        assert s["grid_reduction_kwh"] >= 0
+        assert s["savings_rs"] >= 0
+        assert "description" in s
+    assert body["note"] == "Estimates from the simulation"
 
 
 @pytest.mark.parametrize("scenario", SCENARIOS)
@@ -162,9 +187,9 @@ def test_empty_forecast_rejected():
 def test_no_machine_specific_paths():
     bad = ("C:\\", "/home/", "/Users/")
     for f in pathlib.Path(config.REPO_ROOT, "backend").rglob("*.py"):
-        if f.parent.name == "tests":
+        if f.parent.name == "tests" or "venv" in f.parts or ".venv" in f.parts:
             continue
-        text = f.read_text()
+        text = f.read_text(encoding="utf-8", errors="ignore")
         assert not any(b in text for b in bad), f
 
 

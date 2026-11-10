@@ -152,6 +152,7 @@ def get_mock_assets() -> JsonDict:
         "water_features": dict(empty),
         "power_lines": dict(empty),
         "energy_flow": dict(empty),
+        "roads": dict(empty),
         "map_config": {"center": [73.41, 18.75], "zoom": 10},
     }
 
