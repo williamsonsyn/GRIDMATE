@@ -50,7 +50,7 @@ const DOT_COLORS: Record<string, string> = {
 
 const esc = (s: string) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
-function popupHtml(p: AssetProps, st: AssetState | undefined, hourText: string, scenarioLabel: string | null): string {
+export function popupHtml(p: AssetProps, st: AssetState | undefined, hourText: string, scenarioLabel: string | null): string {
   const out = st ? fmtKw(st.outputKw) : 'n/a';
   const status = st?.status ?? 'idle';
   const rows: [string, string][] = [
@@ -66,27 +66,29 @@ function popupHtml(p: AssetProps, st: AssetState | undefined, hourText: string, 
   const note = p.is_synthetic ? 'Simulated prototype asset. Capacity and output are illustrative, not measured.' : p.note ?? '';
 
   return `
-    <div style="min-width:230px; font-family: ui-sans-serif, system-ui, sans-serif; color: #f8fafc;">
-      <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; border-b:1px solid #334155; padding-bottom:6px; margin-bottom:8px;">
-        <strong style="font-size:13px; font-weight:700; color:#ffffff;">${esc(p.name)}</strong>
-        <span style="font-size:10px; font-weight:700; text-transform:uppercase; padding:2px 6px; border-radius:4px; background:${DOT_COLORS[p.type] || '#64748b'}; color:#ffffff;">
+    <div style="box-sizing:border-box; width:275px; max-width:100%; max-height:230px; overflow-y:auto; overflow-x:hidden; padding-right:4px; font-family:ui-sans-serif, system-ui, sans-serif; color:#f8fafc;">
+      <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:8px; border-bottom:1px solid #334155; padding-bottom:6px; margin-bottom:8px; padding-right:12px;">
+        <strong style="font-size:13px; font-weight:700; color:#ffffff; flex:1; min-width:0; word-break:break-word; overflow-wrap:break-word; line-height:1.35;">
+          ${esc(p.name)}
+        </strong>
+        <span style="font-size:10px; font-weight:700; text-transform:uppercase; padding:2px 6px; border-radius:4px; background:${DOT_COLORS[p.type] || '#64748b'}; color:#ffffff; flex-shrink:0; white-space:nowrap; margin-top:1px;">
           ${esc(p.type)}
         </span>
       </div>
-      <table style="width:100%; font-size:11px; line-height:1.6; border-collapse:collapse;">
+      <div style="display:flex; flex-direction:column; gap:4px; font-size:11px; line-height:1.5;">
         ${rows
           .map(
             ([k, v]) => `
-          <tr>
-            <td style="color:#94a3b8; padding:2px 0;">${esc(k)}</td>
-            <td style="text-align:right; font-weight:600; color:#f8fafc;">${esc(v)}</td>
-          </tr>`
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; min-width:0;">
+            <span style="color:#94a3b8; flex-shrink:0; max-width:50%;">${esc(k)}</span>
+            <span style="font-weight:600; color:#f8fafc; text-align:right; min-width:0; flex:1; word-break:break-word; overflow-wrap:break-word;">${esc(v)}</span>
+          </div>`
           )
           .join('')}
-      </table>
+      </div>
       ${
         note
-          ? `<div style="margin-top:8px; padding:6px 8px; font-size:10px; color:#cbd5e1; background:rgba(220, 38, 38, 0.15); border-left:3px solid #ef4444; border-radius:2px;">
+          ? `<div style="margin-top:8px; padding:6px 8px; font-size:10px; line-height:1.4; color:#cbd5e1; background:rgba(220, 38, 38, 0.15); border-left:3px solid #ef4444; border-radius:2px; word-break:break-word; overflow-wrap:break-word; box-sizing:border-box;">
               ${esc(note)}
             </div>`
           : ''
@@ -182,9 +184,11 @@ export function MapPanel({ assets, error, dispatch, hour, onHour, busy, scenario
   const liveRef = useRef(live);
   const hourRef = useRef(hourText);
   const scenarioLabelRef = useRef(scenarioLabel);
+  const sidebarOpenRef = useRef(sidebarOpen);
   liveRef.current = live;
   hourRef.current = hourText;
   scenarioLabelRef.current = scenarioLabel;
+  sidebarOpenRef.current = sidebarOpen;
 
   // 1. Initialize MapLibre map with dark theme and default satellite
   useEffect(() => {
@@ -368,9 +372,32 @@ export function MapPanel({ assets, error, dispatch, hour, onHour, busy, scenario
           activePopupRef.current.remove();
         }
 
+        // Keep popup clear of bottom timeline bar, attribution, and side panel
+        const canvas = m.getCanvas();
+        const clickY = e.point.y;
+        const clickX = e.point.x;
+        let panX = 0;
+        let panY = 0;
+
+        if (clickY > canvas.height - 200) {
+          panY = clickY - (canvas.height - 200);
+        } else if (clickY < 120) {
+          panY = clickY - 120;
+        }
+
+        if (sidebarOpenRef.current && clickX < 310) {
+          panX = clickX - 310;
+        }
+
+        if (panX !== 0 || panY !== 0) {
+          m.panBy([panX, panY], { duration: 300 });
+        }
+
         const popup = new maplibregl.Popup({
-          offset: 14,
+          offset: 16,
+          maxWidth: '310px',
           className: 'gm-dark-popup',
+          focusAfterOpen: false,
         })
           .setLngLat(coords)
           .setHTML(popupHtml(p, st, hourRef.current, scenarioLabelRef.current))
@@ -590,11 +617,17 @@ export function MapPanel({ assets, error, dispatch, hour, onHour, busy, scenario
     if (!map.current || f.geometry.type !== 'Point') return;
     const coords = f.geometry.coordinates as [number, number];
     const p = f.properties;
-    map.current.flyTo({ center: coords, zoom: 13.8, speed: 1.2 });
+    const flyOffset: [number, number] = sidebarOpen ? [70, 30] : [0, 30];
+    map.current.flyTo({ center: coords, offset: flyOffset, zoom: 13.8, speed: 1.2 });
 
     if (activePopupRef.current) activePopupRef.current.remove();
     const st = liveRef.current?.states[p.id];
-    const popup = new maplibregl.Popup({ offset: 14, className: 'gm-dark-popup' })
+    const popup = new maplibregl.Popup({
+      offset: 16,
+      maxWidth: '310px',
+      className: 'gm-dark-popup',
+      focusAfterOpen: false,
+    })
       .setLngLat(coords)
       .setHTML(popupHtml(p, st, hourRef.current, scenarioLabelRef.current))
       .addTo(map.current);
@@ -613,13 +646,19 @@ export function MapPanel({ assets, error, dispatch, hour, onHour, busy, scenario
       aria-busy={busy}
     >
       <style>{`
+        .gm-dark-popup {
+          max-width: 310px !important;
+          z-index: 25;
+        }
         .gm-dark-popup .maplibregl-popup-content {
           background: rgba(15, 23, 42, 0.96) !important;
           color: #f8fafc !important;
           border: 1px solid #334155 !important;
           border-radius: 10px !important;
           box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6) !important;
-          padding: 12px 14px !important;
+          padding: 10px 12px !important;
+          box-sizing: border-box !important;
+          max-width: 310px !important;
         }
         .gm-dark-popup .maplibregl-popup-tip {
           border-top-color: rgba(15, 23, 42, 0.96) !important;
@@ -627,11 +666,32 @@ export function MapPanel({ assets, error, dispatch, hour, onHour, busy, scenario
         }
         .gm-dark-popup .maplibregl-popup-close-button {
           color: #94a3b8 !important;
-          font-size: 16px;
-          padding: 4px 8px;
+          font-size: 16px !important;
+          padding: 4px 8px !important;
+          top: 4px !important;
+          right: 4px !important;
+          line-height: 1 !important;
         }
         .gm-dark-popup .maplibregl-popup-close-button:hover {
           color: #ffffff !important;
+        }
+        .gm-dark-popup ::-webkit-scrollbar,
+        aside ::-webkit-scrollbar {
+          width: 5px;
+          height: 5px;
+        }
+        .gm-dark-popup ::-webkit-scrollbar-track,
+        aside ::-webkit-scrollbar-track {
+          background: rgba(15, 23, 42, 0.4);
+        }
+        .gm-dark-popup ::-webkit-scrollbar-thumb,
+        aside ::-webkit-scrollbar-thumb {
+          background: #475569;
+          border-radius: 3px;
+        }
+        .gm-dark-popup ::-webkit-scrollbar-thumb:hover,
+        aside ::-webkit-scrollbar-thumb:hover {
+          background: #64748b;
         }
       `}</style>
 
@@ -738,11 +798,11 @@ export function MapPanel({ assets, error, dispatch, hour, onHour, busy, scenario
         {sidebarOpen && (
           <aside className="absolute left-3 top-3 bottom-3 z-10 flex w-72 flex-col rounded-xl border border-slate-700/80 bg-slate-900/95 p-3 shadow-2xl backdrop-blur-md">
             {/* Tabs */}
-            <div className="mb-2.5 flex rounded-lg border border-slate-800 bg-slate-950 p-0.5 text-xs font-semibold">
+            <div className="mb-2.5 flex rounded-lg border border-slate-800 bg-slate-950 p-0.5 text-[11px] font-semibold">
               <button
                 type="button"
                 onClick={() => setActiveTab('metrics')}
-                className={`flex-1 rounded-md py-1 transition-colors ${
+                className={`flex-1 min-w-0 truncate rounded-md py-1 px-1 transition-colors ${
                   activeTab === 'metrics' ? 'bg-cyan-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
@@ -751,16 +811,17 @@ export function MapPanel({ assets, error, dispatch, hour, onHour, busy, scenario
               <button
                 type="button"
                 onClick={() => setActiveTab('assets')}
-                className={`flex-1 rounded-md py-1 transition-colors ${
+                className={`flex-1 min-w-0 truncate rounded-md py-1 px-1 transition-colors ${
                   activeTab === 'assets' ? 'bg-cyan-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'
                 }`}
+                title={`Assets (${assets?.assets.features.length || 12})`}
               >
                 Assets ({assets?.assets.features.length || 12})
               </button>
               <button
                 type="button"
                 onClick={() => setActiveTab('layers')}
-                className={`flex-1 rounded-md py-1 transition-colors ${
+                className={`flex-1 min-w-0 truncate rounded-md py-1 px-1 transition-colors ${
                   activeTab === 'layers' ? 'bg-cyan-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
@@ -769,7 +830,7 @@ export function MapPanel({ assets, error, dispatch, hour, onHour, busy, scenario
               <button
                 type="button"
                 onClick={() => setActiveTab('legend')}
-                className={`flex-1 rounded-md py-1 transition-colors ${
+                className={`flex-1 min-w-0 truncate rounded-md py-1 px-1 transition-colors ${
                   activeTab === 'legend' ? 'bg-cyan-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
@@ -798,18 +859,18 @@ export function MapPanel({ assets, error, dispatch, hour, onHour, busy, scenario
                 </div>
 
                 <div className="rounded-lg border border-slate-800 bg-slate-950/60 p-3 space-y-2">
-                  <div className="flex justify-between font-medium text-slate-300">
-                    <span>Total Generation:</span>
-                    <span className="font-mono text-cyan-300">{fmtKw(totalGenKw)}</span>
+                  <div className="flex justify-between items-start gap-2 font-medium text-slate-300 min-w-0">
+                    <span className="shrink-0">Total Generation:</span>
+                    <span className="font-mono text-cyan-300 text-right min-w-0 break-words">{fmtKw(totalGenKw)}</span>
                   </div>
-                  <div className="flex justify-between font-medium text-slate-300">
-                    <span>Demand Load:</span>
-                    <span className="font-mono text-purple-300">{point ? fmtKw(point.load_kw) : '--'}</span>
+                  <div className="flex justify-between items-start gap-2 font-medium text-slate-300 min-w-0">
+                    <span className="shrink-0">Demand Load:</span>
+                    <span className="font-mono text-purple-300 text-right min-w-0 break-words">{point ? fmtKw(point.load_kw) : '--'}</span>
                   </div>
-                  <div className="flex justify-between font-medium text-slate-300">
-                    <span>Battery Status:</span>
+                  <div className="flex justify-between items-start gap-2 font-medium text-slate-300 min-w-0">
+                    <span className="shrink-0">Battery Status:</span>
                     <span
-                      className={`font-mono font-semibold ${
+                      className={`font-mono font-semibold text-right min-w-0 break-words ${
                         point && point.battery_kw > 0.05
                           ? 'text-emerald-400'
                           : point && point.battery_kw < -0.05
@@ -832,29 +893,29 @@ export function MapPanel({ assets, error, dispatch, hour, onHour, busy, scenario
                 {point && (
                   <div className="space-y-1.5 rounded-lg border border-slate-800 bg-slate-950/60 p-2.5">
                     <div className="text-[11px] font-semibold text-slate-300">Generation Sources</div>
-                    <div className="flex justify-between items-center text-slate-300">
-                      <span className="flex items-center gap-1.5">
+                    <div className="flex justify-between items-center gap-2 text-slate-300 min-w-0">
+                      <span className="flex items-center gap-1.5 shrink-0">
                         <span className="h-2 w-2 rounded-full" style={{ background: DOT_COLORS.solar }} /> Solar
                       </span>
-                      <span className="font-mono">{fmtKw(point.solar_kw)}</span>
+                      <span className="font-mono text-right min-w-0 truncate">{fmtKw(point.solar_kw)}</span>
                     </div>
-                    <div className="flex justify-between items-center text-slate-300">
-                      <span className="flex items-center gap-1.5">
+                    <div className="flex justify-between items-center gap-2 text-slate-300 min-w-0">
+                      <span className="flex items-center gap-1.5 shrink-0">
                         <span className="h-2 w-2 rounded-full" style={{ background: DOT_COLORS.wind }} /> Wind
                       </span>
-                      <span className="font-mono">{fmtKw(point.wind_kw)}</span>
+                      <span className="font-mono text-right min-w-0 truncate">{fmtKw(point.wind_kw)}</span>
                     </div>
-                    <div className="flex justify-between items-center text-slate-300">
-                      <span className="flex items-center gap-1.5">
+                    <div className="flex justify-between items-center gap-2 text-slate-300 min-w-0">
+                      <span className="flex items-center gap-1.5 shrink-0">
                         <span className="h-2 w-2 rounded-full" style={{ background: DOT_COLORS.hydro }} /> Hydro
                       </span>
-                      <span className="font-mono">{fmtKw(point.hydro_kw)}</span>
+                      <span className="font-mono text-right min-w-0 truncate">{fmtKw(point.hydro_kw)}</span>
                     </div>
-                    <div className="flex justify-between items-center text-slate-300">
-                      <span className="flex items-center gap-1.5">
+                    <div className="flex justify-between items-center gap-2 text-slate-300 min-w-0">
+                      <span className="flex items-center gap-1.5 shrink-0">
                         <span className="h-2 w-2 rounded-full" style={{ background: DOT_COLORS.grid }} /> Grid Intertie
                       </span>
-                      <span className="font-mono">{fmtKw(point.grid_kw)}</span>
+                      <span className="font-mono text-right min-w-0 truncate">{fmtKw(point.grid_kw)}</span>
                     </div>
                   </div>
                 )}
@@ -873,24 +934,24 @@ export function MapPanel({ assets, error, dispatch, hour, onHour, busy, scenario
                     <div
                       key={p.id}
                       onClick={() => flyToAsset(f)}
-                      className="group flex cursor-pointer items-center justify-between rounded-lg border border-slate-800 bg-slate-950/60 p-2 transition-all hover:border-cyan-500 hover:bg-slate-800"
+                      className="group flex cursor-pointer items-center justify-between gap-2 rounded-lg border border-slate-800 bg-slate-950/60 p-2 transition-all hover:border-cyan-500 hover:bg-slate-800 min-w-0"
                     >
-                      <div className="flex items-center gap-2 overflow-hidden">
+                      <div className="flex flex-1 min-w-0 items-center gap-2 overflow-hidden">
                         <span
                           className="h-2.5 w-2.5 shrink-0 rounded-full"
                           style={{ background: DOT_COLORS[p.type] || '#94a3b8' }}
                         />
-                        <div className="overflow-hidden">
-                          <div className="truncate font-semibold text-slate-200 group-hover:text-cyan-300">
+                        <div className="min-w-0 flex-1 overflow-hidden">
+                          <div className="truncate text-xs font-semibold text-slate-200 group-hover:text-cyan-300" title={p.name}>
                             {p.name.replace('(Simulated)', '').trim()}
                           </div>
-                          <div className="text-[10px] text-slate-400">
+                          <div className="truncate text-[10px] text-slate-400">
                             {p.type} • {fmtKw(p.capacity_kw)}
                           </div>
                         </div>
                       </div>
-                      <div className="text-right shrink-0">
-                        <div className="font-mono font-semibold text-slate-100">{fmtKw(kw)}</div>
+                      <div className="text-right shrink-0 min-w-[65px]">
+                        <div className="font-mono text-xs font-semibold text-slate-100">{fmtKw(kw)}</div>
                         <span
                           className={`inline-block rounded px-1.5 py-0.2 text-[9px] font-bold uppercase ${
                             status === 'generating' || status === 'discharging' || (status as string) === 'active'
@@ -915,70 +976,76 @@ export function MapPanel({ assets, error, dispatch, hour, onHour, busy, scenario
                 <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
                   Layer Visibility
                 </div>
-                <label className="flex items-center justify-between rounded-lg border border-slate-800 bg-slate-950/60 p-2 text-slate-200">
-                  <span className="flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full bg-blue-500" /> Water Bodies (OSM)
+                <label className="flex items-center justify-between gap-2 rounded-lg border border-slate-800 bg-slate-950/60 p-2 text-slate-200 min-w-0 cursor-pointer hover:border-slate-700">
+                  <span className="flex items-center gap-2 min-w-0 truncate">
+                    <span className="h-2 w-2 rounded-full shrink-0 bg-blue-500" />
+                    <span className="truncate">Water Bodies (OSM)</span>
                   </span>
                   <input
                     type="checkbox"
                     checked={layers.water}
                     onChange={(e) => setLayers({ ...layers, water: e.target.checked })}
-                    className="accent-cyan-500"
+                    className="accent-cyan-500 shrink-0"
                   />
                 </label>
-                <label className="flex items-center justify-between rounded-lg border border-slate-800 bg-slate-950/60 p-2 text-slate-200">
-                  <span className="flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full bg-slate-300" /> Road Network (OSM)
+                <label className="flex items-center justify-between gap-2 rounded-lg border border-slate-800 bg-slate-950/60 p-2 text-slate-200 min-w-0 cursor-pointer hover:border-slate-700">
+                  <span className="flex items-center gap-2 min-w-0 truncate">
+                    <span className="h-2 w-2 rounded-full shrink-0 bg-slate-300" />
+                    <span className="truncate">Road Network (OSM)</span>
                   </span>
                   <input
                     type="checkbox"
                     checked={layers.roads}
                     onChange={(e) => setLayers({ ...layers, roads: e.target.checked })}
-                    className="accent-cyan-500"
+                    className="accent-cyan-500 shrink-0"
                   />
                 </label>
-                <label className="flex items-center justify-between rounded-lg border border-slate-800 bg-slate-950/60 p-2 text-slate-200">
-                  <span className="flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full bg-slate-500" /> Power Lines (OSM)
+                <label className="flex items-center justify-between gap-2 rounded-lg border border-slate-800 bg-slate-950/60 p-2 text-slate-200 min-w-0 cursor-pointer hover:border-slate-700">
+                  <span className="flex items-center gap-2 min-w-0 truncate">
+                    <span className="h-2 w-2 rounded-full shrink-0 bg-slate-500" />
+                    <span className="truncate">Power Lines (OSM)</span>
                   </span>
                   <input
                     type="checkbox"
                     checked={layers.power}
                     onChange={(e) => setLayers({ ...layers, power: e.target.checked })}
-                    className="accent-cyan-500"
+                    className="accent-cyan-500 shrink-0"
                   />
                 </label>
-                <label className="flex items-center justify-between rounded-lg border border-slate-800 bg-slate-950/60 p-2 text-slate-200">
-                  <span className="flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full bg-purple-500" /> Demand Zones
+                <label className="flex items-center justify-between gap-2 rounded-lg border border-slate-800 bg-slate-950/60 p-2 text-slate-200 min-w-0 cursor-pointer hover:border-slate-700">
+                  <span className="flex items-center gap-2 min-w-0 truncate">
+                    <span className="h-2 w-2 rounded-full shrink-0 bg-purple-500" />
+                    <span className="truncate">Demand Zones</span>
                   </span>
                   <input
                     type="checkbox"
                     checked={layers.demand}
                     onChange={(e) => setLayers({ ...layers, demand: e.target.checked })}
-                    className="accent-cyan-500"
+                    className="accent-cyan-500 shrink-0"
                   />
                 </label>
-                <label className="flex items-center justify-between rounded-lg border border-slate-800 bg-slate-950/60 p-2 text-slate-200">
-                  <span className="flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full bg-cyan-400" /> Dynamic Energy Flow
+                <label className="flex items-center justify-between gap-2 rounded-lg border border-slate-800 bg-slate-950/60 p-2 text-slate-200 min-w-0 cursor-pointer hover:border-slate-700">
+                  <span className="flex items-center gap-2 min-w-0 truncate">
+                    <span className="h-2 w-2 rounded-full shrink-0 bg-cyan-400" />
+                    <span className="truncate">Dynamic Energy Flow</span>
                   </span>
                   <input
                     type="checkbox"
                     checked={layers.flow}
                     onChange={(e) => setLayers({ ...layers, flow: e.target.checked })}
-                    className="accent-cyan-500"
+                    className="accent-cyan-500 shrink-0"
                   />
                 </label>
-                <label className="flex items-center justify-between rounded-lg border border-slate-800 bg-slate-950/60 p-2 text-slate-200">
-                  <span className="flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full bg-amber-400" /> Energy Assets
+                <label className="flex items-center justify-between gap-2 rounded-lg border border-slate-800 bg-slate-950/60 p-2 text-slate-200 min-w-0 cursor-pointer hover:border-slate-700">
+                  <span className="flex items-center gap-2 min-w-0 truncate">
+                    <span className="h-2 w-2 rounded-full shrink-0 bg-amber-400" />
+                    <span className="truncate">Energy Assets</span>
                   </span>
                   <input
                     type="checkbox"
                     checked={layers.assets}
                     onChange={(e) => setLayers({ ...layers, assets: e.target.checked })}
-                    className="accent-cyan-500"
+                    className="accent-cyan-500 shrink-0"
                   />
                 </label>
               </div>
@@ -991,17 +1058,17 @@ export function MapPanel({ assets, error, dispatch, hour, onHour, busy, scenario
                   Asset Types
                 </div>
                 {(['solar', 'wind', 'hydro', 'battery', 'grid', 'demand'] as AssetType[]).map((t) => (
-                  <div key={t} className="flex items-center justify-between py-1 text-slate-300">
-                    <span className="flex items-center gap-2">
-                      <span className="h-3 w-3 rounded-full" style={{ background: DOT_COLORS[t] }} />
-                      {TYPE_LABEL[t]}
+                  <div key={t} className="flex items-center justify-between gap-2 py-1 text-slate-300 min-w-0">
+                    <span className="flex items-center gap-2 min-w-0 truncate">
+                      <span className="h-3 w-3 rounded-full shrink-0" style={{ background: DOT_COLORS[t] }} />
+                      <span className="truncate">{TYPE_LABEL[t]}</span>
                     </span>
-                    <span className="text-[11px] font-mono text-slate-400">
+                    <span className="text-[11px] font-mono text-slate-400 shrink-0">
                       {t === 'demand' ? 'Load' : t === 'battery' ? 'Storage' : 'Generation'}
                     </span>
                   </div>
                 ))}
-                <div className="mt-3 border-t border-slate-800 pt-2 text-[11px] text-slate-400 space-y-1">
+                <div className="mt-3 border-t border-slate-800 pt-2 text-[11px] text-slate-400 space-y-1 break-words">
                   <div>• Flow line width indicates transmitted power (kW).</div>
                   <div>• Animated dots show active dynamic power flow direction.</div>
                 </div>
