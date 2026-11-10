@@ -2,382 +2,382 @@
     "location": "Lonavala",
     "dispatch": [
         {
-            "timestamp": "2026-10-01T00:00:00",
+            "timestamp": "2026-11-02T00:00:00",
             "solar_kw": -0.0,
-            "wind_kw": 132.0,
-            "hydro_kw": 264.0,
+            "wind_kw": -0.0,
+            "hydro_kw": 146.39,
             "battery_kw": 0.0,
-            "grid_kw": 108.0,
-            "load_kw": 504.0,
+            "grid_kw": 432.06,
+            "load_kw": 578.45,
             "curtailment_kw": 0.0,
             "battery_soc_kwh": 200.0
         },
         {
-            "timestamp": "2026-10-01T01:00:00",
+            "timestamp": "2026-11-02T01:00:00",
             "solar_kw": -0.0,
-            "wind_kw": 126.5,
-            "hydro_kw": 264.0,
+            "wind_kw": -0.0,
+            "hydro_kw": 146.39,
             "battery_kw": 0.0,
-            "grid_kw": 92.5,
-            "load_kw": 483.0,
+            "grid_kw": 432.41,
+            "load_kw": 578.8,
             "curtailment_kw": 0.0,
             "battery_soc_kwh": 200.0
         },
         {
-            "timestamp": "2026-10-01T02:00:00",
+            "timestamp": "2026-11-02T02:00:00",
             "solar_kw": -0.0,
-            "wind_kw": 121.0,
-            "hydro_kw": 264.0,
-            "battery_kw": 0.0,
-            "grid_kw": 77.0,
-            "load_kw": 462.0,
-            "curtailment_kw": 0.0,
-            "battery_soc_kwh": 200.0
-        },
-        {
-            "timestamp": "2026-10-01T03:00:00",
-            "solar_kw": -0.0,
-            "wind_kw": 123.2,
-            "hydro_kw": 264.0,
-            "battery_kw": 64.3,
-            "grid_kw": -0.0,
-            "load_kw": 451.5,
-            "curtailment_kw": 0.0,
-            "battery_soc_kwh": 132.32
-        },
-        {
-            "timestamp": "2026-10-01T04:00:00",
-            "solar_kw": -0.0,
-            "wind_kw": 129.8,
-            "hydro_kw": 264.0,
-            "battery_kw": 0.0,
-            "grid_kw": 47.2,
-            "load_kw": 441.0,
-            "curtailment_kw": 0.0,
-            "battery_soc_kwh": 132.32
-        },
-        {
-            "timestamp": "2026-10-01T05:00:00",
-            "solar_kw": 4.0,
-            "wind_kw": 137.5,
-            "hydro_kw": 264.0,
-            "battery_kw": 0.0,
-            "grid_kw": 67.0,
-            "load_kw": 472.5,
-            "curtailment_kw": 0.0,
-            "battery_soc_kwh": 132.32
-        },
-        {
-            "timestamp": "2026-10-01T06:00:00",
-            "solar_kw": 12.0,
-            "wind_kw": 148.5,
-            "hydro_kw": 276.0,
-            "battery_kw": 0.0,
-            "grid_kw": 120.0,
-            "load_kw": 556.5,
-            "curtailment_kw": 0.0,
-            "battery_soc_kwh": 132.32
-        },
-        {
-            "timestamp": "2026-10-01T07:00:00",
-            "solar_kw": 24.0,
-            "wind_kw": 159.5,
-            "hydro_kw": 288.0,
-            "battery_kw": 25.7,
-            "grid_kw": 153.8,
-            "load_kw": 651.0,
-            "curtailment_kw": 0.0,
-            "battery_soc_kwh": 105.26
-        },
-        {
-            "timestamp": "2026-10-01T08:00:00",
-            "solar_kw": 40.0,
-            "wind_kw": 170.5,
-            "hydro_kw": 300.0,
+            "wind_kw": -0.0,
+            "hydro_kw": 146.39,
             "battery_kw": 100.0,
-            "grid_kw": 124.5,
-            "load_kw": 735.0,
+            "grid_kw": 334.23,
+            "load_kw": 580.62,
+            "curtailment_kw": 0.0,
+            "battery_soc_kwh": 94.74
+        },
+        {
+            "timestamp": "2026-11-02T03:00:00",
+            "solar_kw": -0.0,
+            "wind_kw": -0.0,
+            "hydro_kw": 146.39,
+            "battery_kw": 0.0,
+            "grid_kw": 435.47,
+            "load_kw": 581.86,
+            "curtailment_kw": 0.0,
+            "battery_soc_kwh": 94.74
+        },
+        {
+            "timestamp": "2026-11-02T04:00:00",
+            "solar_kw": -0.0,
+            "wind_kw": -0.0,
+            "hydro_kw": 146.39,
+            "battery_kw": 90.0,
+            "grid_kw": 362.12,
+            "load_kw": 598.51,
             "curtailment_kw": 0.0,
             "battery_soc_kwh": 50.0
         },
         {
-            "timestamp": "2026-10-01T09:00:00",
-            "solar_kw": 60.0,
-            "wind_kw": 176.0,
-            "hydro_kw": 300.0,
+            "timestamp": "2026-11-02T05:00:00",
+            "solar_kw": -0.0,
+            "wind_kw": -0.0,
+            "hydro_kw": 146.39,
+            "battery_kw": 0.0,
+            "grid_kw": 491.32,
+            "load_kw": 637.71,
+            "curtailment_kw": 0.0,
+            "battery_soc_kwh": 50.0
+        },
+        {
+            "timestamp": "2026-11-02T06:00:00",
+            "solar_kw": 0.1,
+            "wind_kw": -0.0,
+            "hydro_kw": 146.39,
+            "battery_kw": 0.0,
+            "grid_kw": 568.55,
+            "load_kw": 715.04,
+            "curtailment_kw": 0.0,
+            "battery_soc_kwh": 50.0
+        },
+        {
+            "timestamp": "2026-11-02T07:00:00",
+            "solar_kw": 3.51,
+            "wind_kw": 5.09,
+            "hydro_kw": 149.74,
+            "battery_kw": 0.0,
+            "grid_kw": 644.87,
+            "load_kw": 803.21,
+            "curtailment_kw": 0.0,
+            "battery_soc_kwh": 50.0
+        },
+        {
+            "timestamp": "2026-11-02T08:00:00",
+            "solar_kw": 16.4,
+            "wind_kw": 7.76,
+            "hydro_kw": 153.0,
+            "battery_kw": 0.0,
+            "grid_kw": 662.37,
+            "load_kw": 839.53,
+            "curtailment_kw": 0.0,
+            "battery_soc_kwh": 50.0
+        },
+        {
+            "timestamp": "2026-11-02T09:00:00",
+            "solar_kw": 33.13,
+            "wind_kw": 20.46,
+            "hydro_kw": 153.0,
+            "battery_kw": 0.0,
+            "grid_kw": 599.88,
+            "load_kw": 806.47,
+            "curtailment_kw": 0.0,
+            "battery_soc_kwh": 50.0
+        },
+        {
+            "timestamp": "2026-11-02T10:00:00",
+            "solar_kw": 50.37,
+            "wind_kw": 21.91,
+            "hydro_kw": 153.0,
             "battery_kw": -100.0,
-            "grid_kw": 362.0,
-            "load_kw": 798.0,
+            "grid_kw": 594.81,
+            "load_kw": 720.09,
             "curtailment_kw": 0.0,
             "battery_soc_kwh": 95.0
         },
         {
-            "timestamp": "2026-10-01T10:00:00",
-            "solar_kw": 76.0,
-            "wind_kw": 187.0,
-            "hydro_kw": 300.0,
+            "timestamp": "2026-11-02T11:00:00",
+            "solar_kw": 63.88,
+            "wind_kw": 23.19,
+            "hydro_kw": 153.0,
             "battery_kw": -100.0,
-            "grid_kw": 398.0,
-            "load_kw": 861.0,
+            "grid_kw": 506.35,
+            "load_kw": 646.41,
             "curtailment_kw": 0.0,
             "battery_soc_kwh": 190.0
         },
         {
-            "timestamp": "2026-10-01T11:00:00",
-            "solar_kw": 86.0,
-            "wind_kw": 192.5,
-            "hydro_kw": 300.0,
+            "timestamp": "2026-11-02T12:00:00",
+            "solar_kw": 63.91,
+            "wind_kw": 24.08,
+            "hydro_kw": 153.0,
+            "battery_kw": -100.0,
+            "grid_kw": 461.15,
+            "load_kw": 602.14,
+            "curtailment_kw": 0.0,
+            "battery_soc_kwh": 285.0
+        },
+        {
+            "timestamp": "2026-11-02T13:00:00",
+            "solar_kw": 57.96,
+            "wind_kw": 22.14,
+            "hydro_kw": 153.0,
             "battery_kw": -26.32,
-            "grid_kw": 361.32,
-            "load_kw": 913.5,
-            "curtailment_kw": 0.0,
-            "battery_soc_kwh": 215.0
-        },
-        {
-            "timestamp": "2026-10-01T12:00:00",
-            "solar_kw": 90.0,
-            "wind_kw": 198.0,
-            "hydro_kw": 300.0,
-            "battery_kw": -100.0,
-            "grid_kw": 457.0,
-            "load_kw": 945.0,
+            "grid_kw": 381.68,
+            "load_kw": 588.47,
             "curtailment_kw": 0.0,
             "battery_soc_kwh": 310.0
         },
         {
-            "timestamp": "2026-10-01T13:00:00",
-            "solar_kw": 88.0,
-            "wind_kw": 195.8,
-            "hydro_kw": 300.0,
-            "battery_kw": 0.0,
-            "grid_kw": 382.2,
-            "load_kw": 966.0,
-            "curtailment_kw": 0.0,
-            "battery_soc_kwh": 310.0
-        },
-        {
-            "timestamp": "2026-10-01T14:00:00",
-            "solar_kw": 80.0,
-            "wind_kw": 189.2,
-            "hydro_kw": 300.0,
+            "timestamp": "2026-11-02T14:00:00",
+            "solar_kw": 49.06,
+            "wind_kw": 24.94,
+            "hydro_kw": 153.42,
             "battery_kw": -100.0,
-            "grid_kw": 517.8,
-            "load_kw": 987.0,
+            "grid_kw": 461.43,
+            "load_kw": 588.85,
             "curtailment_kw": 0.0,
             "battery_soc_kwh": 405.0
         },
         {
-            "timestamp": "2026-10-01T15:00:00",
-            "solar_kw": 68.0,
-            "wind_kw": 181.5,
-            "hydro_kw": 300.0,
+            "timestamp": "2026-11-02T15:00:00",
+            "solar_kw": 35.36,
+            "wind_kw": 26.35,
+            "hydro_kw": 153.59,
+            "battery_kw": 0.0,
+            "grid_kw": 406.26,
+            "load_kw": 621.55,
+            "curtailment_kw": 0.0,
+            "battery_soc_kwh": 405.0
+        },
+        {
+            "timestamp": "2026-11-02T16:00:00",
+            "solar_kw": 22.56,
+            "wind_kw": 14.62,
+            "hydro_kw": 153.41,
             "battery_kw": -100.0,
-            "grid_kw": 558.5,
-            "load_kw": 1008.0,
+            "grid_kw": 603.78,
+            "load_kw": 694.37,
             "curtailment_kw": 0.0,
             "battery_soc_kwh": 500.0
         },
         {
-            "timestamp": "2026-10-01T16:00:00",
-            "solar_kw": 52.0,
-            "wind_kw": 173.8,
-            "hydro_kw": 288.0,
-            "battery_kw": 0.0,
-            "grid_kw": 483.7,
-            "load_kw": 997.5,
-            "curtailment_kw": 0.0,
-            "battery_soc_kwh": 500.0
-        },
-        {
-            "timestamp": "2026-10-01T17:00:00",
-            "solar_kw": 32.0,
-            "wind_kw": 165.0,
-            "hydro_kw": 276.0,
-            "battery_kw": 100.0,
-            "grid_kw": 456.0,
-            "load_kw": 1029.0,
-            "curtailment_kw": 0.0,
-            "battery_soc_kwh": 394.74
-        },
-        {
-            "timestamp": "2026-10-01T18:00:00",
-            "solar_kw": 12.0,
-            "wind_kw": 154.0,
-            "hydro_kw": 276.0,
-            "battery_kw": 100.0,
-            "grid_kw": 508.0,
-            "load_kw": 1050.0,
-            "curtailment_kw": 0.0,
-            "battery_soc_kwh": 289.47
-        },
-        {
-            "timestamp": "2026-10-01T19:00:00",
-            "solar_kw": 2.0,
-            "wind_kw": 143.0,
-            "hydro_kw": 276.0,
-            "battery_kw": 0.0,
-            "grid_kw": 608.0,
-            "load_kw": 1029.0,
-            "curtailment_kw": 0.0,
-            "battery_soc_kwh": 289.47
-        },
-        {
-            "timestamp": "2026-10-01T20:00:00",
-            "solar_kw": -0.0,
-            "wind_kw": 140.8,
-            "hydro_kw": 276.0,
+            "timestamp": "2026-11-02T17:00:00",
+            "solar_kw": 9.53,
+            "wind_kw": -0.0,
+            "hydro_kw": 153.59,
             "battery_kw": 85.0,
-            "grid_kw": 443.2,
-            "load_kw": 945.0,
+            "grid_kw": 581.44,
+            "load_kw": 829.55,
+            "curtailment_kw": 0.0,
+            "battery_soc_kwh": 410.53
+        },
+        {
+            "timestamp": "2026-11-02T18:00:00",
+            "solar_kw": -0.0,
+            "wind_kw": -0.0,
+            "hydro_kw": 153.59,
+            "battery_kw": 0.0,
+            "grid_kw": 825.17,
+            "load_kw": 978.76,
+            "curtailment_kw": 0.0,
+            "battery_soc_kwh": 410.53
+        },
+        {
+            "timestamp": "2026-11-02T19:00:00",
+            "solar_kw": -0.0,
+            "wind_kw": -0.0,
+            "hydro_kw": 153.41,
+            "battery_kw": 100.0,
+            "grid_kw": 805.49,
+            "load_kw": 1058.89,
+            "curtailment_kw": 0.0,
+            "battery_soc_kwh": 305.26
+        },
+        {
+            "timestamp": "2026-11-02T20:00:00",
+            "solar_kw": -0.0,
+            "wind_kw": -0.0,
+            "hydro_kw": 153.42,
+            "battery_kw": 100.0,
+            "grid_kw": 726.15,
+            "load_kw": 979.57,
             "curtailment_kw": 0.0,
             "battery_soc_kwh": 200.0
         },
         {
-            "timestamp": "2026-10-01T21:00:00",
+            "timestamp": "2026-11-02T21:00:00",
             "solar_kw": -0.0,
-            "wind_kw": 137.5,
-            "hydro_kw": 270.0,
+            "wind_kw": -0.0,
+            "hydro_kw": 153.42,
             "battery_kw": 0.0,
-            "grid_kw": 453.5,
-            "load_kw": 861.0,
+            "grid_kw": 680.05,
+            "load_kw": 833.47,
             "curtailment_kw": 0.0,
             "battery_soc_kwh": 200.0
         },
         {
-            "timestamp": "2026-10-01T22:00:00",
+            "timestamp": "2026-11-02T22:00:00",
             "solar_kw": -0.0,
-            "wind_kw": 134.2,
-            "hydro_kw": 264.0,
+            "wind_kw": -0.0,
+            "hydro_kw": 153.42,
             "battery_kw": 0.0,
-            "grid_kw": 336.8,
-            "load_kw": 735.0,
+            "grid_kw": 534.93,
+            "load_kw": 688.35,
             "curtailment_kw": 0.0,
             "battery_soc_kwh": 200.0
         },
         {
-            "timestamp": "2026-10-01T23:00:00",
+            "timestamp": "2026-11-02T23:00:00",
             "solar_kw": -0.0,
-            "wind_kw": 129.8,
-            "hydro_kw": 264.0,
+            "wind_kw": -0.0,
+            "hydro_kw": 153.42,
             "battery_kw": 0.0,
-            "grid_kw": 194.2,
-            "load_kw": 588.0,
+            "grid_kw": 455.82,
+            "load_kw": 609.24,
             "curtailment_kw": 0.0,
             "battery_soc_kwh": 200.0
         }
     ],
     "metrics": {
-        "renewable_penetration_percent": 60.42,
-        "grid_dependency_percent": 39.58,
+        "renewable_penetration_percent": 24.31,
+        "grid_dependency_percent": 75.69,
         "curtailment_percent": 0.0,
         "battery_utilization_percent": 4.17,
-        "estimated_co2_avoided_kg": 7811.5
+        "estimated_co2_avoided_kg": 2920.48
     },
     "extra_metrics": {
-        "total_grid_cost_rs": 56240.24,
-        "grid_only_cost_rs": 142783.2,
-        "baseline_cost_rs": 142783.2,
-        "savings_rs": 86542.96,
-        "savings_percent": 60.6,
-        "average_cost_rs_per_kwh_served": 3.05,
-        "grid_only_average_cost_rs_per_kwh": 7.73,
+        "total_grid_cost_rs": 103246.12,
+        "grid_only_cost_rs": 136307.11,
+        "baseline_cost_rs": 136307.11,
+        "savings_rs": 33060.99,
+        "savings_percent": 24.3,
+        "average_cost_rs_per_kwh_served": 6.02,
+        "grid_only_average_cost_rs_per_kwh": 7.94,
         "label": "Cost figures are prototype estimates based on assumed tariffs, not billing-grade values."
     },
     "extra_hourly": [
         {
-            "timestamp": "2026-10-01T00:00:00",
+            "timestamp": "2026-11-02T00:00:00",
             "grid_price_rs_per_kwh": 8.0
         },
         {
-            "timestamp": "2026-10-01T01:00:00",
+            "timestamp": "2026-11-02T01:00:00",
             "grid_price_rs_per_kwh": 8.0
         },
         {
-            "timestamp": "2026-10-01T02:00:00",
+            "timestamp": "2026-11-02T02:00:00",
             "grid_price_rs_per_kwh": 8.0
         },
         {
-            "timestamp": "2026-10-01T03:00:00",
+            "timestamp": "2026-11-02T03:00:00",
             "grid_price_rs_per_kwh": 8.0
         },
         {
-            "timestamp": "2026-10-01T04:00:00",
+            "timestamp": "2026-11-02T04:00:00",
             "grid_price_rs_per_kwh": 8.0
         },
         {
-            "timestamp": "2026-10-01T05:00:00",
+            "timestamp": "2026-11-02T05:00:00",
             "grid_price_rs_per_kwh": 8.0
         },
         {
-            "timestamp": "2026-10-01T06:00:00",
+            "timestamp": "2026-11-02T06:00:00",
             "grid_price_rs_per_kwh": 8.0
         },
         {
-            "timestamp": "2026-10-01T07:00:00",
+            "timestamp": "2026-11-02T07:00:00",
             "grid_price_rs_per_kwh": 8.0
         },
         {
-            "timestamp": "2026-10-01T08:00:00",
+            "timestamp": "2026-11-02T08:00:00",
             "grid_price_rs_per_kwh": 8.0
         },
         {
-            "timestamp": "2026-10-01T09:00:00",
+            "timestamp": "2026-11-02T09:00:00",
             "grid_price_rs_per_kwh": 6.0
         },
         {
-            "timestamp": "2026-10-01T10:00:00",
+            "timestamp": "2026-11-02T10:00:00",
             "grid_price_rs_per_kwh": 6.0
         },
         {
-            "timestamp": "2026-10-01T11:00:00",
+            "timestamp": "2026-11-02T11:00:00",
             "grid_price_rs_per_kwh": 6.0
         },
         {
-            "timestamp": "2026-10-01T12:00:00",
+            "timestamp": "2026-11-02T12:00:00",
             "grid_price_rs_per_kwh": 6.0
         },
         {
-            "timestamp": "2026-10-01T13:00:00",
+            "timestamp": "2026-11-02T13:00:00",
             "grid_price_rs_per_kwh": 6.0
         },
         {
-            "timestamp": "2026-10-01T14:00:00",
+            "timestamp": "2026-11-02T14:00:00",
             "grid_price_rs_per_kwh": 6.0
         },
         {
-            "timestamp": "2026-10-01T15:00:00",
+            "timestamp": "2026-11-02T15:00:00",
             "grid_price_rs_per_kwh": 6.0
         },
         {
-            "timestamp": "2026-10-01T16:00:00",
+            "timestamp": "2026-11-02T16:00:00",
             "grid_price_rs_per_kwh": 6.0
         },
         {
-            "timestamp": "2026-10-01T17:00:00",
+            "timestamp": "2026-11-02T17:00:00",
             "grid_price_rs_per_kwh": 9.6
         },
         {
-            "timestamp": "2026-10-01T18:00:00",
+            "timestamp": "2026-11-02T18:00:00",
             "grid_price_rs_per_kwh": 9.6
         },
         {
-            "timestamp": "2026-10-01T19:00:00",
+            "timestamp": "2026-11-02T19:00:00",
             "grid_price_rs_per_kwh": 9.6
         },
         {
-            "timestamp": "2026-10-01T20:00:00",
+            "timestamp": "2026-11-02T20:00:00",
             "grid_price_rs_per_kwh": 9.6
         },
         {
-            "timestamp": "2026-10-01T21:00:00",
+            "timestamp": "2026-11-02T21:00:00",
             "grid_price_rs_per_kwh": 9.6
         },
         {
-            "timestamp": "2026-10-01T22:00:00",
+            "timestamp": "2026-11-02T22:00:00",
             "grid_price_rs_per_kwh": 9.6
         },
         {
-            "timestamp": "2026-10-01T23:00:00",
+            "timestamp": "2026-11-02T23:00:00",
             "grid_price_rs_per_kwh": 9.6
         }
     ],
