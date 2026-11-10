@@ -6,9 +6,11 @@ import { DispatchChart } from '../components/DispatchChart';
 import { EnergyMix } from '../components/EnergyMix';
 import { GenerationChart } from '../components/GenerationChart';
 import { Header } from '../components/Header';
+import { HourlyPowerCards } from '../components/HourlyPowerCards';
 import { MapPanel } from '../components/MapPanel';
 import { MetricCard } from '../components/MetricCard';
 import { Notice } from '../components/Notice';
+import { ResourcesAndSuggestions } from '../components/ResourcesAndSuggestions';
 import { ScenarioComparisonModal } from '../components/ScenarioComparisonModal';
 import { ScenarioSelector } from '../components/ScenarioSelector';
 import { SystemStatus } from '../components/SystemStatus';
@@ -34,6 +36,8 @@ export function Dashboard() {
   const rows = dispatch?.dispatch ?? null;
   const hour = rows ? Math.min(state.hour, rows.length - 1) : 0;
   const point = rows ? rows[hour] ?? null : null;
+  const prevHourIndex = rows && rows.length > 0 ? (hour - 1 + rows.length) % rows.length : null;
+  const previousPoint = rows && prevHourIndex !== null ? rows[prevHourIndex] : null;
   const label = (id: typeof active) => scenarios.find((s) => s.id === id)?.label ?? null;
   const m = metrics?.metrics ?? null;
   const prev = previousMetrics;
@@ -72,6 +76,14 @@ export function Dashboard() {
           </div>
         </div>
 
+        <HourlyPowerCards
+          point={point}
+          previousPoint={previousPoint}
+          hour={hour}
+          selectedDate={state.selectedDate}
+          busy={busy}
+        />
+
         <section aria-label="Key metrics">
           <div className="mb-2 flex items-baseline justify-between">
             <h2 className="font-display text-lg font-semibold">Key metrics for {label(active) ?? 'the selected scenario'}</h2>
@@ -99,6 +111,11 @@ export function Dashboard() {
           <DispatchChart dispatch={rows} busy={busy} hour={hour} />
           <EnergyMix dispatch={rows} busy={busy} />
         </div>
+
+        <ResourcesAndSuggestions
+          suggestions={state.suggestions}
+          busy={busy}
+        />
 
         <CompareScenarios
           rows={state.comparisonRows}

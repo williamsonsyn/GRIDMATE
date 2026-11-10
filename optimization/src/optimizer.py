@@ -147,6 +147,7 @@ def load_config() -> dict:
 def optimize_dispatch(
     forecast_input: Union[dict, str, Path],
     output_path: Union[str, Path, None] = None,
+    config_override: Union[dict, None] = None,
 ) -> dict:
     """Run the PyPSA / HiGHS dispatch optimisation.
 
@@ -180,6 +181,11 @@ def optimize_dispatch(
     out_file = Path(output_path) if output_path else OUTPUT_FILE
 
     cfg     = load_config()
+    if config_override:
+        if "battery" in config_override:
+            cfg["battery"].update(config_override["battery"])
+        if "grid" in config_override:
+            cfg["grid"].update(config_override["grid"])
     battery = cfg["battery"]
     grid    = cfg["grid"]
 

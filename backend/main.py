@@ -8,7 +8,7 @@ from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from . import config
-from .api import dispatch, forecast, metrics, scenarios, summary
+from .api import dispatch, forecast, metrics, scenarios, suggestions, summary
 from .models.schemas import HealthResponse
 from .services import assets_service
 
@@ -48,6 +48,7 @@ api.include_router(dispatch.router)
 api.include_router(metrics.router)
 api.include_router(scenarios.router)
 api.include_router(summary.router)
+api.include_router(suggestions.router)
 app.include_router(api)
 
 _ = assets_service  # imported for side-effect-free availability

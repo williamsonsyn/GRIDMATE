@@ -8,7 +8,6 @@ export function Header() {
         </div>
         <div className="text-right text-sm">
           <p className="font-medium">Lonavala, Maharashtra</p>
-          <p className="rounded bg-white/10 px-2 py-0.5 text-xs text-amber-200">Simulation result: synthetic prototype data, not measured Lonavala data</p>
         </div>
       </div>
     </header>
