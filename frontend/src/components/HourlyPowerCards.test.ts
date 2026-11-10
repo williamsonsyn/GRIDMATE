@@ -61,3 +61,4 @@ describe('HourlyPowerCards calculations', () => {
     expect(gridDelta).toBe(-90.0);
   });
 });
+
