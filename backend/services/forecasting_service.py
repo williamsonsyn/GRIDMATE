@@ -1,12 +1,19 @@
-"""Forecasting service: wraps Member 1's generate_forecast()."""
+"""Forecasting service: wraps Member 1's generate_forecast().
+
+Supports both Vercel internal service binding (via FORECASTING_SERVICE_URL)
+and local in-process execution with mock fallback.
+"""
 from __future__ import annotations
 
 import contextlib
 import io
 import logging
+import os
 import sys
 from threading import Lock
 from typing import Any
+
+import httpx
 
 from .. import config
 from . import mock_data
@@ -18,6 +25,16 @@ _lock = Lock()
 
 class ForecastError(RuntimeError):
     """Raised when the forecast cannot be produced."""
+
+
+def _get_service_url() -> str | None:
+    url = os.getenv("FORECASTING_SERVICE_URL")
+    if not url:
+        return None
+    url = url.strip()
+    if not url.startswith("http://") and not url.startswith("https://"):
+        return f"https://{url}"
+    return url.rstrip("/")
 
 
 def _load_predict() -> Any:
@@ -51,6 +68,18 @@ def _round_rows(raw: JsonDict) -> JsonDict:
 
 
 def get_real_forecast(scenario: str) -> JsonDict:
+    service_url = _get_service_url()
+    if service_url:
+        payload = {"scenario": scenario, "horizon": config.HORIZON_HOURS}
+        try:
+            with httpx.Client(timeout=25.0) as client:
+                resp = client.post(f"{service_url}/predict", json=payload)
+                resp.raise_for_status()
+                return _round_rows(resp.json())
+        except Exception as exc:
+            log.exception("Remote forecasting service request failed: %s", exc)
+            raise ForecastError(f"Forecasting service error: {exc}") from exc
+
     with _lock:
         predict = _load_predict()
         with contextlib.redirect_stdout(io.StringIO()):
@@ -93,6 +122,42 @@ def get_forecast_for_date(
             row["timestamp"] = f"{date_str}T{i:02d}:00:00"
         return raw, "mock", [], note
 
+    service_url = _get_service_url()
+    if service_url:
+        weather_list = None
+        if df_weather is not None:
+            # Convert timestamp to ISO string format for JSON serialization
+            df_copy = df_weather.copy()
+            if "timestamp" in df_copy.columns:
+                df_copy["timestamp"] = df_copy["timestamp"].astype(str)
+            weather_list = df_copy.to_dict(orient="records")
+
+        payload = {
+            "scenario": scenario,
+            "horizon": config.HORIZON_HOURS,
+            "future_weather": weather_list,
+            "allow_arbitrary_dates": True,
+        }
+        try:
+            with httpx.Client(timeout=25.0) as client:
+                resp = client.post(f"{service_url}/predict", json=payload)
+                resp.raise_for_status()
+                raw = resp.json()
+            return _round_rows(raw), "model", [], note
+        except Exception as exc:
+            log.exception("Remote forecasting service for date %s failed: %s", date_str, exc)
+            if config.MODE == "real":
+                raise ForecastError(f"Forecasting for {date_str} failed: {exc}") from exc
+            raw = mock_data.get_mock_forecast(scenario)
+            for i, row in enumerate(raw["forecast"]):
+                row["timestamp"] = f"{date_str}T{i:02d}:00:00"
+            return (
+                raw,
+                "mock",
+                [f"Forecast service unavailable ({type(exc).__name__}); showing mock forecast."],
+                note,
+            )
+
     try:
         with _lock:
             predict = _load_predict()
@@ -118,4 +183,3 @@ def get_forecast_for_date(
             [f"Forecast model unavailable ({type(exc).__name__}); showing mock forecast."],
             note,
         )
-

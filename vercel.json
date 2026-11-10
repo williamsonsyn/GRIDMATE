@@ -1,0 +1,63 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "services": {
+    "frontend": {
+      "root": "frontend",
+      "framework": "vite"
+    },
+    "backend": {
+      "root": "backend",
+      "framework": "fastapi",
+      "bindings": [
+        {
+          "type": "service",
+          "service": "forecasting",
+          "format": "url",
+          "env": "FORECASTING_SERVICE_URL"
+        },
+        {
+          "type": "service",
+          "service": "optimization",
+          "format": "url",
+          "env": "OPTIMIZATION_SERVICE_URL"
+        },
+        {
+          "type": "service",
+          "service": "digital-twin",
+          "format": "url",
+          "env": "DIGITAL_TWIN_SERVICE_URL"
+        }
+      ]
+    },
+    "forecasting": {
+      "root": "forecasting_real_data",
+      "runtime": "python",
+      "entrypoint": "main.py"
+    },
+    "optimization": {
+      "root": "optimization",
+      "runtime": "python",
+      "entrypoint": "main.py"
+    },
+    "digital-twin": {
+      "root": "digital-twin",
+      "runtime": "python",
+      "entrypoint": "main.py"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": {
+        "service": "backend"
+      }
+    },
+    {
+      "source": "/(.*)",
+      "destination": {
+        "service": "frontend"
+      }
+    }
+  ]
+}
+

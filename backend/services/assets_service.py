@@ -1,10 +1,17 @@
-"""Assets service: serves Member 3's Lonavala Digital Twin GeoJSON."""
+"""Assets service: serves Member 3's Lonavala Digital Twin GeoJSON.
+
+Supports both Vercel internal service binding (via DIGITAL_TWIN_SERVICE_URL)
+and local in-process execution with mock fallback.
+"""
 from __future__ import annotations
 
+from functools import lru_cache
 import json
 import logging
-from functools import lru_cache
+import os
 from typing import Any
+
+import httpx
 
 from .. import config
 from . import mock_data
@@ -20,6 +27,16 @@ _LAYERS = {
     "energy_flow": "energy_flow_template.geojson",
     "roads": "roads.geojson",
 }
+
+
+def _get_service_url() -> str | None:
+    url = os.getenv("DIGITAL_TWIN_SERVICE_URL")
+    if not url:
+        return None
+    url = url.strip()
+    if not url.startswith("http://") and not url.startswith("https://"):
+        return f"https://{url}"
+    return url.rstrip("/")
 
 
 @lru_cache(maxsize=1)
@@ -38,6 +55,19 @@ def _load_real() -> JsonDict:
 
 def get_assets() -> tuple[JsonDict, str]:
     """Return (layers, source) where source is 'digital_twin' or 'mock'."""
+    service_url = _get_service_url()
+    if service_url:
+        try:
+            with httpx.Client(timeout=15.0) as client:
+                resp = client.get(f"{service_url}/assets")
+                resp.raise_for_status()
+                return resp.json(), "digital_twin"
+        except Exception as exc:
+            log.exception("Remote digital twin service failed: %s", exc)
+            if config.MODE == "real":
+                raise RuntimeError(f"Digital twin service error: {exc}") from exc
+            return mock_data.get_mock_assets(), "mock"
+
     if config.MODE != "mock":
         try:
             return _load_real(), "digital_twin"

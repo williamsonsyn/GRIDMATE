@@ -1,6 +1,8 @@
-geopandas>=1.0.0
-osmnx>=2.0.0
-shapely>=2.0.0
+# GridMate — Digital Twin Microservice Runtime
+fastapi>=0.110
+uvicorn>=0.29
+pydantic>=2.6
 pytest>=8.0.0
-requests>=2.31.0
-pyproj>=3.6.0
+
+# Note: Offline data generation scripts in scripts/ use GeoPandas, OSMnx and Shapely
+# which are not required for serving the pre-generated GeoJSON runtime datasets.

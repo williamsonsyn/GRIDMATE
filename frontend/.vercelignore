@@ -1,0 +1,10 @@
+# Frontend Service Deployment Packaging Exclusions
+node_modules
+node_modules/**
+.venv
+.venv/**
+dist
+dist/**
+.git
+.git/**
+

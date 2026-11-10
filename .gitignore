@@ -1,23 +1,66 @@
-# Python virtual environments
+# ==============================================================================
+# GridMate Git Ignore Rules (.gitignore)
+# ==============================================================================
+
+# Python virtual environments (in root or any service subdirectory)
+.venv
 .venv/
+**/.venv
+**/.venv/
+venv
 venv/
+**/venv
+**/venv/
+env
 env/
+**/env
+**/env/
+ENV
+ENV/
 
-# Python cache files
+# Python cache, bytecode, and compilation artifacts
 __pycache__/
+**/__pycache__/
 *.py[cod]
-.pytest_cache/
+*$py.class
+*.pyo
 
-# IDE settings
+# Testing and coverage artifacts
+.pytest_cache/
+**/.pytest_cache/
+.mypy_cache/
+**/.mypy_cache/
+.ruff_cache/
+**/.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# Logs and runtime scratch files
+logs/
+**/logs/
+*.log
+backend/data/runtime/
+
+# Node dependencies and build output
+node_modules/
+**/node_modules/
+frontend/dist/
+
+# IDE and OS files
 .vscode/
 .idea/
-
-# OS files
 .DS_Store
 Thumbs.db
 
-# GridMate integration
-node_modules/
-frontend/dist/
-.pytest_cache/
-backend/data/runtime/
+# Environment and secrets
+.env
+.env.*
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+!.env.example
+
+# Vercel deployment artifacts
+.vercel/
